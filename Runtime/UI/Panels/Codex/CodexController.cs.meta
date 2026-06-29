@@ -1,0 +1,12 @@
+fileFormatVersion: 2
+guid: 1710b95f0fcae3b45ace82d3b8773e10
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - CodexMenuItemTemplate: {fileID: 9197481963319205126, guid: a1e2c5ab5f5fe4742b28e6e934285e0b, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

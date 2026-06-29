@@ -1,0 +1,18 @@
+{
+  "name": "it.unicam.theoden",
+  "version": "1.0.0",
+  "displayName": "Theoden",
+  "description": "This is an example package",
+  "unity": "2020.2",
+  "documentationUrl": "https://github.com/UnicamPlayGround/THEODEN.git",
+  "licensesUrl": "Apache-2.0",
+  "dependencies": {
+    "com.unity.nuget.newtonsoft-json": "3.2.1",
+    "com.unity.addressables": "2.7.4"
+  },
+  "author": {
+    "name": "Unicam",
+    "email": "unity@example.com",
+    "url": "https://www.unity3d.com"
+  }
+}

@@ -1,0 +1,12 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <Style src="project://database/Packages/it.unicam.theoden/Runtime/UI/Styles/CodexMenuItemStyles.uss?fileID=7433441132597879392&amp;guid=ab66b7e67bd00aa4c8e44587f50466d4&amp;type=3#CodexMenuItemStyles" />
+    <ui:VisualElement name="CodexMenuItem" style="flex-grow: 0; height: 50px; width: 100%; align-items: center; justify-content: center;">
+        <ui:Button name="CodexItemButton" class="CodexItemButton">
+            <ui:VisualElement name="CodexItemButtonText" style="flex-grow: 1; align-items: flex-start; width: 85%; height: 100%;">
+                <ui:Label text="Level Title" name="LevelTitleLable" style="margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-bottom: 1px;" />
+                <ui:Label text="This is the level sub-title label&#10;" name="LevelSubTitleLable" style="white-space: pre; flex-wrap: wrap; font-size: 11px; margin-top: 0; margin-right: 0; margin-bottom: 0; margin-left: 0; padding-top: 1px;" />
+            </ui:VisualElement>
+            <ui:VisualElement name="CodexItemButtonIcon" style="flex-grow: 0; width: 15%; height: 100%;" />
+        </ui:Button>
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,0 +1,6 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:VisualElement name="secondPanel" style="flex-grow: 1; align-items: center; justify-content: center; background-color: rgb(11, 11, 11);">
+        <ui:Label text="SECOND PANEL!" style="-unity-font-style: bold; background-color: rgb(252, 246, 246);" />
+        <ui:Button text="back" name="buttonBack" style="margin-top: 10px; margin-right: 10px; margin-bottom: 10px; margin-left: 10px; flex-grow: 0;" />
+    </ui:VisualElement>
+</ui:UXML>

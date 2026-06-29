@@ -1,0 +1,25 @@
+.CodexItemButton {
+    align-items: center;
+    flex-grow: 0;
+    justify-content: flex-start;
+    width: 98%;
+    background-color: rgb(245, 245, 245);
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    height: 100%;
+    flex-direction: row;
+    padding-top: 2px;
+    padding-right: 5px;
+    padding-bottom: 2px;
+    padding-left: 5px;
+    border-top-width: 0.2px;
+    border-right-width: 0.2px;
+    border-bottom-width: 0.2px;
+    border-left-width: 0.2px;
+    border-left-color: rgb(134, 192, 76);
+    border-right-color: rgb(134, 192, 76);
+    border-top-color: rgb(134, 192, 76);
+    border-bottom-color: rgb(134, 192, 76);
+}

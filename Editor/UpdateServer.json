@@ -1,0 +1,46 @@
+﻿[
+  {
+    "name": "asset_bundles",
+    "update": "1"
+  },
+  {
+    "name": "codex_base",
+    "update": "1"
+  },
+  {
+    "name": "codex_main",
+    "update": "1"
+  },
+  {
+    "name": "codex_side",
+    "update": "1"
+  },
+  {
+    "name": "codex_images",
+    "update": "1"
+  },
+  {
+    "name": "codex_error",
+    "update": "1"
+  },
+  {
+    "name": "collectibles",
+    "update": "1"
+  },
+  {
+    "name": "credits_roles",
+    "update": "1"
+  },
+  {
+    "name": "credits_people",
+    "update": "1"
+  },
+  {
+    "name": "qr_scanner",
+    "update": "1"
+  },
+  {
+    "name": "tutorial_text",
+    "update": "1"
+  }
+]

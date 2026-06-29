@@ -1,0 +1,9 @@
+.standardTitle {
+    width: 100px;
+    height: 100px;
+    flex-grow: 1;
+    flex-shrink: 1;
+    -unity-text-align: middle-center;
+    -unity-font-style: bold;
+    font-size: 30px;
+}
