@@ -1,7 +1,0 @@
-<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
-    <Style src="project://database/Packages/it.unicam.theoden/Runtime/UI/Panels/Codex/standardPanels.uss?fileID=7433441132597879392&amp;guid=44dc1fce8c1804d43899bf1f4fb16777&amp;type=3#standardPanels" />
-    <Style src="project://database/Packages/it.unicam.theoden/Runtime/UI/AppRoot/AppRootStyle.uss?fileID=7433441132597879392&amp;guid=f8d07b0ff8ab92442b85d9b69c0eca3d&amp;type=3#AppRootStyle" />
-    <ui:VisualElement name="codexPanel" class="CenterPanelProperties" style="flex-grow: 0; background-color: rgb(255, 255, 255); align-items: center; justify-content: center; min-width: auto; min-height: auto;">
-        <ui:ScrollView name="CodexButtonContainer" style="align-items: center; justify-content: flex-start; width: 100%; height: 100%; min-height: 90%; min-width: 90%;" />
-    </ui:VisualElement>
-</ui:UXML>

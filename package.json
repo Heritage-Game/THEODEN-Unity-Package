@@ -1,9 +1,9 @@
 {
   "name": "it.unicam.theoden",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "displayName": "Theoden",
-  "description": "This is an example package",
-  "unity": "2020.2",
+  "description": "THEODEN \u2014 A Unity toolkit for building interactive, location-based cultural heritage games.",
+  "unity": "2020.3",
   "documentationUrl": "https://github.com/UnicamPlayGround/THEODEN.git",
   "licensesUrl": "Apache-2.0",
   "dependencies": {
