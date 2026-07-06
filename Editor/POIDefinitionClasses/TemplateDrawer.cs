@@ -2,7 +2,7 @@ using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine.UIElements;
 
-namespace Editor.POIDefinitionClasses
+namespace Theoden.Editor.POIDefinitionClasses
 {
     /// <summary>
     /// This class is a helper class used to handle the ReferencedProperty inside the Scriptable Object.

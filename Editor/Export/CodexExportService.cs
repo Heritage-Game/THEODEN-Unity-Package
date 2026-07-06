@@ -8,7 +8,7 @@ using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEngine;
 
-namespace Editor.Export
+namespace Theoden.Editor.Export
 {
     /// <summary>
     /// Service responsible for exporting codex menu data to JSON

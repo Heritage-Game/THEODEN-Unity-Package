@@ -2,7 +2,7 @@ using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
 
-namespace Editor.Export
+namespace Theoden.Editor.Export
 {
     /// <summary>
     /// Utility class that configures Addressables group build/load paths

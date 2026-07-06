@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Reflection;
 
-namespace Editor.Export
+namespace Theoden.Editor.Export
 {
     /// <summary>
     /// Utility class used during the POI export pipeline to discover all Unity asset references

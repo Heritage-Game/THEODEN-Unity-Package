@@ -2,13 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Addressing;
-using Editor.Export;
+using Theoden.Editor.Export;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
 using UnityEngine.UIElements;
 
-namespace Editor.POIDefinitionClasses
+namespace Theoden.Editor.POIDefinitionClasses
 {
     public class LevelDefinitionBuilderWindow : EditorWindow
     {

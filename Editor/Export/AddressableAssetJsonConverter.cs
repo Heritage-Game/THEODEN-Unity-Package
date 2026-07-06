@@ -5,7 +5,7 @@ using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEngine;
 
-namespace Editor.Export
+namespace Theoden.Editor.Export
 {
     /// <summary>
     /// Json.NET converter used during the POI export pipeline to serialize Unity asset references

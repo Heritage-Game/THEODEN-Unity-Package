@@ -4,7 +4,7 @@ using Newtonsoft.Json;
 using UnityEditor;
 using UnityEngine;
 
-namespace Editor.POIDefinitionClasses
+namespace Theoden.Editor.POIDefinitionClasses
 {
     public static class LevelDefinitionJsonExporter
     {

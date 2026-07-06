@@ -5,7 +5,7 @@ using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEngine;
 
-namespace Editor.Export
+namespace Theoden.Editor.Export
 {
     /// <summary>
     /// Registers directions media assets inside the Addressables system.

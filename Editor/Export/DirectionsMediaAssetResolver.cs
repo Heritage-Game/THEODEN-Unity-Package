@@ -4,7 +4,7 @@ using Addressing;
 using UnityEditor;
 using UnityEngine;
 
-namespace Editor.Export
+namespace Theoden.Editor.Export
 {
     /// <summary>
     /// Resolves Addressables addresses for media assets referenced by directions data.

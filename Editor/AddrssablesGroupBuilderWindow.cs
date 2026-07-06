@@ -6,7 +6,7 @@ using UnityEditor.AddressableAssets.Settings;
 using UnityEditor.AddressableAssets.Settings.GroupSchemas;
 using UnityEngine;
 
-namespace Editor
+namespace Theoden.Editor
 {
     /// <summary>
     /// Editor window che permette di creare facilmente label Addressables per tutti gli asset contenuti

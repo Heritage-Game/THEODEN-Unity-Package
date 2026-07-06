@@ -1,11 +1,11 @@
 using Addressing;
-using Editor.POIDefinitionClasses;
+using Theoden.Editor.POIDefinitionClasses;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
 using UnityEngine;
 
-namespace Editor.Export
+namespace Theoden.Editor.Export
 {
     /// <summary>
     /// Registers Unity assets referenced by a POI template inside the Addressables system.
