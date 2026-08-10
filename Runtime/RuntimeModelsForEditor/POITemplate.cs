@@ -96,6 +96,9 @@ public abstract class POITemplate : LevelTemplateBase
     [Serializable]
     public abstract class Challenge
     {
-        public int points;
+        [Min(1)]
+        [Tooltip("Points awarded when the challenge is completed correctly." +
+                 " If this value is invalid the default value will be 100 points.")]
+        public int points = TheodenScoringRules.DefaultChallengePoints;
     }
 }

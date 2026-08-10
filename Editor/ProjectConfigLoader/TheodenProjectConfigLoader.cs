@@ -57,6 +57,39 @@ public static class TheodenProjectConfigLoader
         
         LoadLanguages(context);
         LoadPois(context);
+        
+        string loadedProjectId = context.theodenProjectConfig.projectId;
+        string loadedConfigPath = AssetDatabase.GetAssetPath(context.theodenProjectConfig);
+        
+        Debug.Log(
+            "[TheodenProjectConfigLoader] Config path: " +
+            loadedConfigPath +
+            " | projectId: '" +
+            loadedProjectId +
+            "' | is empty: " +
+            string.IsNullOrWhiteSpace(loadedProjectId)
+        );
+       
+        if (string.IsNullOrWhiteSpace(
+                context.theodenProjectConfig.projectId))
+        {
+            error =
+                "The THEODEN project identifier is empty. " +
+                $"Loaded config: '{loadedConfigPath}'.";
+
+
+            return false;
+        }
+        
+        if (!IsValidProjectId(
+                context.theodenProjectConfig.projectId))
+        {
+            error =
+                "The project identifier can contain only lowercase " +
+                "letters, numbers, and underscores.";
+
+            return false;
+        }
 
         if (string.IsNullOrWhiteSpace(context.poisFolderPath))
         {
@@ -127,6 +160,25 @@ public static class TheodenProjectConfigLoader
         {
             error = "POI registry was found, but it does not contain any POI.";
             return false;
+        }
+
+        return true;
+    }
+    
+    private static bool IsValidProjectId(string projectId)
+    {
+        if (string.IsNullOrWhiteSpace(projectId))
+            return false;
+
+        foreach (char character in projectId)
+        {
+            bool isValid =
+                char.IsLower(character) ||
+                char.IsDigit(character) ||
+                character == '_';
+
+            if (!isValid)
+                return false;
         }
 
         return true;

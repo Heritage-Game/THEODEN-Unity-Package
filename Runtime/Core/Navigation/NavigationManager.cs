@@ -52,7 +52,7 @@ public class NavigationManager : MonoBehaviour
     {
         string currentScene = SceneManager.GetActiveScene().name;
 
-        if (sceneName == "Menu")
+        if (sceneName == "MenuUIToolkit")
         {
             history.Clear();
             Transitions.LoadScene(sceneName);
@@ -77,7 +77,7 @@ public class NavigationManager : MonoBehaviour
         else
         {
             Debug.LogWarning("No previous scene in history");
-            Transitions.LoadScene("Menu"); // fallback
+            Transitions.LoadScene("MenuUIToolkit"); // fallback
         }
     }
 

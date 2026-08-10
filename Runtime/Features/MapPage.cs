@@ -24,7 +24,7 @@ public class MapPage : MonoBehaviour
         {
             btnExitMap.onClick.AddListener(() =>
             {
-                NavigationManager.Instance.NavigateTo("Menu"); // Ana menü sahnenizin adı
+                NavigationManager.Instance.NavigateTo("MenuUIToolkit"); // Ana menü sahnenizin adı
             });
         }
     }

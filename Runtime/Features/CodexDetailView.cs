@@ -1,38 +1,101 @@
 using Core.Models;
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
+using UnityEngine.UIElements;
 
 public class CodexDetailView : MonoBehaviour
 {
+    // ============================================================
+    // UI REFERENCES (UI TOOLKIT)
+    // ============================================================
     [Header("UI References")]
-    [SerializeField] private Image logoImage;
-    [SerializeField] private TextMeshProUGUI levelTitleText;
-    [SerializeField] private TextMeshProUGUI directionsText;
-    [SerializeField] private Button scanQRButton;
-    [SerializeField] private Button backButton;
+    [SerializeField] private UIDocument uiDocument;
 
-    private void Start()
+    private VisualElement root;
+    private VisualElement logoContainer;
+    private Image logoImage;
+    private Label levelTitleText;
+    private Label directionsText;
+    private Button scanQRButton;
+    private Button backButton;
+
+    // ============================================================
+    // UNITY LIFECYCLE
+    // ============================================================
+    private void OnEnable()
     {
+        if (uiDocument == null)
+        {
+            Debug.LogError("[CodexDetailView] UIDocument not assigned.");
+            return;
+        }
+
+        root = uiDocument.rootVisualElement;
+        BindUIElements();
         SetupButtons();
         LoadSelectedDirectionsData();
     }
 
+    private void OnDisable()
+    {
+        if (backButton != null)
+            backButton.clicked -= OnBackClicked;
+
+        if (scanQRButton != null)
+            scanQRButton.clicked -= OnScanQRClicked;
+    }
+
+    // ============================================================
+    // UI BINDING
+    // ============================================================
+    private void BindUIElements()
+    {
+        logoContainer = root.Q<VisualElement>("logo_container");
+        logoImage = root.Q<Image>("poi_image");
+        levelTitleText = root.Q<Label>("level_title_text");
+        directionsText = root.Q<Label>("directions_text");
+        scanQRButton = root.Q<Button>("scan_qr_button");
+        backButton = root.Q<Button>("back_button");
+
+        if (logoContainer == null)
+            Debug.LogWarning("[CodexDetailView] 'logo_container' not found in UXML.");
+
+        if (logoImage == null)
+            Debug.LogWarning("[CodexDetailView] 'logo_image' not found in UXML.");
+
+        if (levelTitleText == null)
+            Debug.LogWarning("[CodexDetailView] 'level_title_text' not found in UXML.");
+
+        if (directionsText == null)
+            Debug.LogWarning("[CodexDetailView] 'directions_text' not found in UXML.");
+
+        if (scanQRButton == null)
+            Debug.LogWarning("[CodexDetailView] 'scan_qr_button' not found in UXML.");
+
+        if (backButton == null)
+            Debug.LogWarning("[CodexDetailView] 'back_button' not found in UXML.");
+    }
+
+    // ============================================================
+    // SETUP
+    // ============================================================
     private void SetupButtons()
     {
         if (backButton != null)
         {
-            backButton.onClick.RemoveAllListeners();
-            backButton.onClick.AddListener(OnBackClicked);
+            backButton.clicked -= OnBackClicked;
+            backButton.clicked += OnBackClicked;
         }
 
         if (scanQRButton != null)
         {
-            scanQRButton.onClick.RemoveAllListeners();
-            scanQRButton.onClick.AddListener(OnScanQRClicked);
+            scanQRButton.clicked -= OnScanQRClicked;
+            scanQRButton.clicked += OnScanQRClicked;
         }
     }
 
+    // ============================================================
+    // LOAD DATA
+    // ============================================================
     private void LoadSelectedDirectionsData()
     {
         if (DataManager.Instance == null)
@@ -65,29 +128,36 @@ public class CodexDetailView : MonoBehaviour
                 : directions.description;
         }
 
-        // ------------------------------------------------------
-        //                  IGNORE IMAGES FOR NOW
-        // ------------------------------------------------------
-        /*
-         * if (logoImage != null)
-        {
-            bool hasDirectionImage =
-                directions.imageGUIDs != null &&
-                directions.imageGUIDs.Count > 0 &&
-                !string.IsNullOrEmpty(directions.imageGUIDs[0]);
-
-            // For the demo, hide it unless you already have a resolver for direction images.
-            logoImage.gameObject.SetActive(false);
-
-            if (hasDirectionImage)
-            {
-                Debug.Log("[CodexDetailView] Direction image GUID found, but image loading is disabled for demo.");
-            }
-        }
-         */
-        
+        LoadLogoImage(directions);
     }
 
+    // ============================================================
+    // LOGO IMAGE LOADING
+    // ============================================================
+    private void LoadLogoImage(DirectionsToNextPOIModel directions)
+    {
+        if (logoImage == null) return;
+
+        /*bool hasDirectionImage = directions.imageGUIDs != null &&
+                                 directions.imageGUIDs.Count > 0 &&
+                                 !string.IsNullOrEmpty(directions.imageGUIDs[0]);*/
+        bool hasDirectionImage = directions.images != null &&
+                             directions.images.Count > 0 &&
+                             directions.images[0] != null &&
+                             !string.IsNullOrEmpty(directions.images[0].address);
+
+        logoImage.style.display = DisplayStyle.None;
+        logoContainer.style.display = DisplayStyle.None;
+
+        if (hasDirectionImage)
+        {
+            Debug.Log("[CodexDetailView] Direction image GUID found, but image loading is disabled for demo.");
+        }
+    }
+
+    // ============================================================
+    // UI UTILITIES
+    // ============================================================
     private void ShowFallbackText()
     {
         if (levelTitleText != null)
@@ -97,9 +167,15 @@ public class CodexDetailView : MonoBehaviour
             directionsText.text = "Directions data could not be loaded.";
 
         if (logoImage != null)
-            logoImage.gameObject.SetActive(false);
+            logoImage.style.display = DisplayStyle.None;
+
+        if (logoContainer != null)
+            logoContainer.style.display = DisplayStyle.None;
     }
 
+    // ============================================================
+    // BUTTON HANDLERS
+    // ============================================================
     private void OnBackClicked()
     {
         if (NavigationManager.Instance == null)
@@ -109,7 +185,6 @@ public class CodexDetailView : MonoBehaviour
         }
 
         NavigationManager.Instance.GoBack();
-        
     }
 
     private void OnScanQRClicked()
@@ -134,15 +209,6 @@ public class CodexDetailView : MonoBehaviour
             return;
         }
 
-        NavigationManager.Instance.NavigateTo("QRScanner");
-    }
-
-    private void OnDestroy()
-    {
-        if (backButton != null)
-            backButton.onClick.RemoveAllListeners();
-
-        if (scanQRButton != null)
-            scanQRButton.onClick.RemoveAllListeners();
+        NavigationManager.Instance.NavigateTo("QRScannerUIToolkit");
     }
 }

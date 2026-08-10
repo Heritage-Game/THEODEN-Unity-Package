@@ -1,9 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Addressing;
-using Theoden.Editor.POIDefinitionClasses;
 using UnityEditor;
 using UnityEditor.AddressableAssets;
 using UnityEditor.AddressableAssets.Settings;
-using UnityEngine;
 
 namespace Theoden.Editor.Export
 {
@@ -24,28 +25,14 @@ namespace Theoden.Editor.Export
     public static class PoiAddressablesSetupService
     {
         /// <summary>
-        /// Sets up Addressables entries for all Unity asset references contained in a POI template.
+        /// Sets up Addressables entries for the Unity assets referenced
+        /// by a POI template.
         /// </summary>
-        /// <param name="template">
-        /// The POI template to scan for Unity asset references.
-        /// </param>
-        /// <param name="poiId">
-        /// The unique id of the Point of Interest associated with the template.
-        /// </param>
-        /// <param name="poiRootFolderPath">
-        /// The Unity project-relative root folder of the POI.
-        /// Expected format: Assets/&lt;ProjectName&gt;/POIs/&lt;poiId&gt;.
-        /// </param>
-        /// <param name="error">
-        /// Output error message if the setup fails.
-        /// </param>
-        /// <returns>
-        /// True if Addressables setup completed successfully; otherwise false.
-        /// </returns>
         public static bool SetupAddressablesForTemplate(
             LevelTemplateBase template,
+            string projectId,
             string poiId,
-            string poiRootFolderPath,
+            string projectRootFolderPath,
             out string error)
         {
             error = null;
@@ -56,92 +43,195 @@ namespace Theoden.Editor.Export
                 return false;
             }
 
+            if (string.IsNullOrWhiteSpace(projectId))
+            {
+                error = "THEODEN project id is missing.";
+                return false;
+            }
+
             if (string.IsNullOrWhiteSpace(poiId))
             {
                 error = "POI id is missing.";
                 return false;
             }
 
-            poiRootFolderPath = NormalizeUnityPath(poiRootFolderPath);
+            projectRootFolderPath =
+                NormalizeUnityPath(projectRootFolderPath)
+                    .TrimEnd('/');
 
-            if (string.IsNullOrWhiteSpace(poiRootFolderPath) ||
-                !poiRootFolderPath.StartsWith("Assets"))
+            if (string.IsNullOrWhiteSpace(projectRootFolderPath) ||
+                !projectRootFolderPath.Equals(
+                    "Assets",
+                    StringComparison.Ordinal) &&
+                !projectRootFolderPath.StartsWith(
+                    "Assets/",
+                    StringComparison.Ordinal))
             {
-                error = $"Invalid POI root folder path: {poiRootFolderPath}";
+                error =
+                    "Invalid THEODEN project root folder path: " +
+                    projectRootFolderPath;
+
                 return false;
             }
 
-            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            AddressableAssetSettings settings =
+                AddressableAssetSettingsDefaultObject.Settings;
 
             if (settings == null)
             {
-                error = "Addressables settings not found. Initialize Addressables first.";
+                error =
+                    "Addressables settings not found. " +
+                    "Initialize Addressables first.";
+
                 return false;
             }
 
-            string groupName = TheodenAddressablesNaming.GetPoiGroupName(poiId);
-            string label = TheodenAddressablesNaming.GetPoiLabel(poiId);
+            string groupName =
+                TheodenAddressablesNaming.GetPoiGroupName(
+                    projectId,
+                    poiId
+                );
 
-            AddressableAssetGroup group = GetOrCreateGroup(settings, groupName);
-            
-            if (!AddressablesGroupPathConfigurator.ConfigureGroupPaths(settings, group))
+            string label =
+                TheodenAddressablesNaming.GetPoiLabel(
+                    projectId,
+                    poiId
+                );
+
+            AddressableAssetGroup group =
+                GetOrCreateGroup(
+                    settings,
+                    groupName
+                );
+
+            if (!AddressablesGroupPathConfigurator
+                    .ConfigureGroupPaths(settings, group))
             {
-                error = $"Could not configure Addressables paths for group: {groupName}";
+                error =
+                    "Could not configure Addressables paths for group: " +
+                    groupName;
+
                 return false;
             }
 
-            var references = UnityAssetReferenceCollector.CollectUnityObjectReferences(template);
+            List<UnityAssetReferenceCollector.UnityObjectReference>
+                references =
+                    UnityAssetReferenceCollector
+                        .CollectUnityObjectReferences(template);
 
-            foreach (var reference in references)
+            HashSet<string> processedGuids =
+                new(StringComparer.Ordinal);
+
+            Dictionary<string, string> addressOwners =
+                new(StringComparer.Ordinal);
+
+            foreach (
+                UnityAssetReferenceCollector.UnityObjectReference reference
+                in references)
             {
-                UnityEngine.Object asset = reference.Asset;
+                UnityEngine.Object asset =
+                    reference.Asset;
 
                 if (asset == null)
                     continue;
 
-                string assetPath = AssetDatabase.GetAssetPath(asset);
+                string assetPath =
+                    NormalizeUnityPath(
+                        AssetDatabase.GetAssetPath(asset)
+                    );
 
                 if (string.IsNullOrWhiteSpace(assetPath))
                 {
-                    error = $"Asset '{asset.name}' is not inside the project and cannot be Addressable.";
+                    error =
+                        $"Asset '{asset.name}' is not inside the " +
+                        "Unity project and cannot be Addressable.";
+
                     return false;
                 }
 
-                assetPath = NormalizeUnityPath(assetPath);
-
-                if (!IsInsideFolder(assetPath, poiRootFolderPath))
+                if (!IsInsideFolder(
+                        assetPath,
+                        projectRootFolderPath))
                 {
-                    Debug.LogWarning(
-                        $"Asset '{asset.name}' is outside the POI folder.\n" +
-                        $"Expected inside: {poiRootFolderPath}\n" +
-                        $"Actual path: {assetPath}"
-                    );
+                    error =
+                        $"Asset '{asset.name}' does not belong to the " +
+                        $"selected THEODEN project.\n" +
+                        $"Expected inside: {projectRootFolderPath}\n" +
+                        $"Actual path: {assetPath}";
+
+                    return false;
                 }
 
-                string guid = AssetDatabase.AssetPathToGUID(assetPath);
+                string guid =
+                    AssetDatabase.AssetPathToGUID(assetPath);
 
                 if (string.IsNullOrWhiteSpace(guid))
                 {
-                    error = $"Could not resolve GUID for asset: {assetPath}";
+                    error =
+                        "Could not resolve GUID for asset: " +
+                        assetPath;
+
                     return false;
                 }
 
-                string address = MediaAddressResolver.ResolveAddress(
-                    asset,
-                    poiId,
-                    reference.SourceField
-                );
+                if (!processedGuids.Add(guid))
+                    continue;
+
+                string address =
+                    MediaAddressResolver.ResolveAddress(
+                        asset,
+                        projectId,
+                        poiId,
+                        reference.SourceField
+                    );
 
                 if (string.IsNullOrWhiteSpace(address))
                 {
-                    error = $"Could not resolve Addressables address for asset: {assetPath}";
+                    error =
+                        "Could not resolve Addressables address for asset: " +
+                        assetPath;
+
                     return false;
                 }
 
-                AddressableAssetEntry entry = settings.CreateOrMoveEntry(guid, group);
+                if (addressOwners.TryGetValue(
+                        address,
+                        out string existingGuid) &&
+                    !string.Equals(
+                        existingGuid,
+                        guid,
+                        StringComparison.Ordinal))
+                {
+                    string existingAssetPath =
+                        AssetDatabase.GUIDToAssetPath(
+                            existingGuid
+                        );
+
+                    error =
+                        $"Two different assets resolve to the same " +
+                        $"Addressables address '{address}'.\n" +
+                        $"First asset: {existingAssetPath}\n" +
+                        $"Second asset: {assetPath}";
+
+                    return false;
+                }
+
+                addressOwners[address] = guid;
+
+                AddressableAssetEntry entry =
+                    settings.CreateOrMoveEntry(
+                        guid,
+                        group
+                    );
+
+                RemoveOldTheodenLabels(entry);
 
                 entry.address = address;
-                entry.SetLabel(label, true, true);
+                entry.SetLabel(
+                    label,
+                    true,
+                    true
+                );
             }
 
             settings.SetDirty(
@@ -156,22 +246,80 @@ namespace Theoden.Editor.Export
         }
 
         /// <summary>
-        /// Gets an existing Addressables group or creates it if it does not exist.
+        /// Temporary compatibility overload. Existing callers compile,
+        /// but must be migrated before exporting again.
         /// </summary>
-        /// <param name="settings">
-        /// The active Addressables settings asset.
-        /// </param>
-        /// <param name="groupName">
-        /// The name of the group to find or create.
-        /// </param>
-        /// <returns>
-        /// The existing or newly created Addressables group.
-        /// </returns>
+        [Obsolete(
+            "Use SetupAddressablesForTemplate with projectId and " +
+            "projectRootFolderPath."
+        )]
+        public static bool SetupAddressablesForTemplate(
+            LevelTemplateBase template,
+            string poiId,
+            string poiRootFolderPath,
+            out string error)
+        {
+            error =
+                "The POI exporter still uses the legacy Addressables " +
+                "setup method. Migrate PoiExportService before exporting.";
+
+            return false;
+        }
+
+        /// <summary>
+        /// Removes labels generated by older THEODEN export operations.
+        /// Labels unrelated to THEODEN are preserved.
+        /// </summary>
+        internal static void RemoveOldTheodenLabels(
+            AddressableAssetEntry entry)
+        {
+            if (entry?.labels == null)
+                return;
+
+            string[] existingLabels =
+                entry.labels.ToArray();
+
+            foreach (string existingLabel in existingLabels)
+            {
+                if (!IsTheodenManagedLabel(existingLabel))
+                    continue;
+
+                entry.SetLabel(
+                    existingLabel,
+                    false,
+                    false
+                );
+            }
+        }
+
+        private static bool IsTheodenManagedLabel(
+            string label)
+        {
+            if (string.IsNullOrWhiteSpace(label))
+                return false;
+
+            return
+                label.StartsWith(
+                    "theoden_",
+                    StringComparison.OrdinalIgnoreCase) ||
+                label.StartsWith(
+                    "poi_",
+                    StringComparison.OrdinalIgnoreCase) ||
+                label.StartsWith(
+                    "directions_",
+                    StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(
+                    label,
+                    "codex",
+                    StringComparison.OrdinalIgnoreCase);
+        }
+
         private static AddressableAssetGroup GetOrCreateGroup(
             AddressableAssetSettings settings,
             string groupName)
         {
-            AddressableAssetGroup group = settings.FindGroup(groupName);
+            AddressableAssetGroup group =
+                settings.FindGroup(groupName);
 
             if (group != null)
                 return group;
@@ -185,37 +333,28 @@ namespace Theoden.Editor.Export
             );
         }
 
-        /// <summary>
-        /// Checks whether a Unity asset path is inside a given folder path.
-        /// </summary>
-        /// <param name="assetPath">
-        /// The Unity project-relative asset path.
-        /// </param>
-        /// <param name="folderPath">
-        /// The Unity project-relative folder path.
-        /// </param>
-        /// <returns>
-        /// True if the asset path is inside the folder path; otherwise false.
-        /// </returns>
-        private static bool IsInsideFolder(string assetPath, string folderPath)
+        private static bool IsInsideFolder(
+            string assetPath,
+            string folderPath)
         {
-            assetPath = NormalizeUnityPath(assetPath);
-            folderPath = NormalizeUnityPath(folderPath).TrimEnd('/');
+            assetPath =
+                NormalizeUnityPath(assetPath);
 
-            return assetPath.Equals(folderPath) ||
-                   assetPath.StartsWith(folderPath + "/");
+            folderPath =
+                NormalizeUnityPath(folderPath)
+                    .TrimEnd('/');
+
+            return
+                assetPath.Equals(
+                    folderPath,
+                    StringComparison.Ordinal) ||
+                assetPath.StartsWith(
+                    folderPath + "/",
+                    StringComparison.Ordinal);
         }
 
-        /// <summary>
-        /// Normalizes a Unity project path to forward-slash format.
-        /// </summary>
-        /// <param name="path">
-        /// The path to normalize.
-        /// </param>
-        /// <returns>
-        /// The normalized path, or an empty string if the input is null or whitespace.
-        /// </returns>
-        private static string NormalizeUnityPath(string path)
+        private static string NormalizeUnityPath(
+            string path)
         {
             return string.IsNullOrWhiteSpace(path)
                 ? string.Empty

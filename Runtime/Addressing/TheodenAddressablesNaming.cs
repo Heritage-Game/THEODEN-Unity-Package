@@ -1,153 +1,213 @@
+using System;
+
 namespace Addressing
 {
     /// <summary>
-    /// Provides shared Addressables group, label, and address naming conventions
-    /// used by both editor export tools and runtime loading systems.
+    /// Provides shared Addressables naming conventions used by
+    /// THEODEN editor tools and runtime systems.
     /// </summary>
     public static class TheodenAddressablesNaming
     {
-        /// <summary>
-        /// Returns the Addressables group name used for the runtime POI content.
-        /// </summary>
-        public static string GetPoiGroupName(string poiId)
+        // ============================================================
+        // POI
+        // ============================================================
+
+        public static string GetPoiGroupName(
+            string projectId,
+            string poiId)
         {
-            return $"POI_{SanitizeAddressPart(poiId)}";
+            return
+                $"THEODEN_{SanitizeAddressPart(projectId)}_" +
+                $"POI_{SanitizeAddressPart(poiId)}";
         }
 
-        /// <summary>
-        /// Returns the Addressables label used to download/load all runtime POI content.
-        /// </summary>
-        public static string GetPoiLabel(string poiId)
+        public static string GetPoiLabel(
+            string projectId,
+            string poiId)
         {
-            return $"poi_{SanitizeAddressPart(poiId)}";
+            return
+                $"theoden_{SanitizeAddressPart(projectId)}_" +
+                $"poi_{SanitizeAddressPart(poiId)}";
         }
 
-        /// <summary>
-        /// Returns the Addressables group name used for directions content.
-        /// </summary>
-        public static string GetDirectionsGroupName(string poiId)
+        public static string GetPoiJsonAddress(
+            string projectId,
+            string poiId,
+            LanguageList language)
         {
-            return $"Directions_{SanitizeAddressPart(poiId)}";
+            string project = SanitizeAddressPart(projectId);
+            string poi = SanitizeAddressPart(poiId);
+
+            return
+                $"theoden/{project}/poi/{poi}/json/" +
+                $"{poi}_{language}";
         }
 
-        /// <summary>
-        /// Returns the Addressables label used to download/load all directions content.
-        /// </summary>
-        public static string GetDirectionsLabel(string poiId)
+        public static string GetPoiBadgeAddress(
+            string projectId,
+            string poiId,
+            string assetName)
         {
-            return $"directions_{SanitizeAddressPart(poiId)}";
+            return
+                $"{GetPoiAddressRoot(projectId, poiId)}/badge/" +
+                SanitizeAddressPart(assetName);
         }
 
-        /// <summary>
-        /// Returns the Addressables address for a POI JSON file.
-        /// </summary>
-        public static string GetPoiJsonAddress(string poiId, LanguageList language)
+        public static string GetPoiImageAddress(
+            string projectId,
+            string poiId,
+            string assetName)
         {
-            string sanitizedPoiId = SanitizeAddressPart(poiId);
-            return $"poi/{sanitizedPoiId}/json/{sanitizedPoiId}_{language}";
+            return
+                $"{GetPoiAddressRoot(projectId, poiId)}/images/" +
+                SanitizeAddressPart(assetName);
         }
 
-        /// <summary>
-        /// Returns the Addressables address for a directions JSON file.
-        /// </summary>
-        public static string GetDirectionsJsonAddress(string poiId, LanguageList language)
+        public static string GetPoiMusicAddress(
+            string projectId,
+            string poiId)
         {
-            string sanitizedPoiId = SanitizeAddressPart(poiId);
-            return $"poi/{sanitizedPoiId}/directions/json/{sanitizedPoiId}_directions_{language}";
+            return
+                $"{GetPoiAddressRoot(projectId, poiId)}/audio/music";
         }
 
-        /// <summary>
-        /// Returns the Addressables address for a directions image.
-        /// </summary>
-        public static string GetDirectionsImageAddress(string poiId, string assetName)
+        public static string GetPoiAudioDescriptionAddress(
+            string projectId,
+            string poiId)
         {
-            return $"poi/{SanitizeAddressPart(poiId)}/directions/images/{SanitizeAddressPart(assetName)}";
+            return
+                $"{GetPoiAddressRoot(projectId, poiId)}" +
+                "/audio/audio_description";
         }
 
-        /// <summary>
-        /// Returns the Addressables address for a directions audio description.
-        /// </summary>
-        public static string GetDirectionsAudioDescriptionAddress(string poiId)
+        public static string GetPoiGenericMediaAddress(
+            string projectId,
+            string poiId,
+            string assetName)
         {
-            return $"poi/{SanitizeAddressPart(poiId)}/directions/audio/audio_description";
+            return
+                $"{GetPoiAddressRoot(projectId, poiId)}/media/" +
+                SanitizeAddressPart(assetName);
         }
 
-        /// <summary>
-        /// Returns the Addressables address for a POI badge asset.
-        /// </summary>
-        public static string GetPoiBadgeAddress(string poiId, string assetName)
+        // ============================================================
+        // DIRECTIONS
+        // ============================================================
+
+        public static string GetDirectionsGroupName(
+            string projectId,
+            string poiId)
         {
-            return $"poi/{SanitizeAddressPart(poiId)}/badge/{SanitizeAddressPart(assetName)}";
+            return
+                $"THEODEN_{SanitizeAddressPart(projectId)}_" +
+                $"Directions_{SanitizeAddressPart(poiId)}";
         }
 
-        /// <summary>
-        /// Returns the Addressables address for a POI image asset.
-        /// </summary>
-        public static string GetPoiImageAddress(string poiId, string assetName)
+        public static string GetDirectionsLabel(
+            string projectId,
+            string poiId)
         {
-            return $"poi/{SanitizeAddressPart(poiId)}/images/{SanitizeAddressPart(assetName)}";
+            return
+                $"theoden_{SanitizeAddressPart(projectId)}_" +
+                $"directions_{SanitizeAddressPart(poiId)}";
         }
 
-        /// <summary>
-        /// Returns the Addressables address for a POI music asset.
-        /// </summary>
-        public static string GetPoiMusicAddress(string poiId)
+        public static string GetDirectionsJsonAddress(
+            string projectId,
+            string poiId,
+            LanguageList language)
         {
-            return $"poi/{SanitizeAddressPart(poiId)}/audio/music";
+            string poi = SanitizeAddressPart(poiId);
+
+            return
+                $"{GetDirectionsAddressRoot(projectId, poiId)}/json/" +
+                $"{poi}_directions_{language}";
         }
 
-        /// <summary>
-        /// Returns the Addressables address for a POI audio description asset.
-        /// </summary>
-        public static string GetPoiAudioDescriptionAddress(string poiId)
+        public static string GetDirectionsImageAddress(
+            string projectId,
+            string poiId,
+            string assetName)
         {
-            return $"poi/{SanitizeAddressPart(poiId)}/audio/audio_description";
+            return
+                $"{GetDirectionsAddressRoot(projectId, poiId)}/images/" +
+                SanitizeAddressPart(assetName);
         }
 
-        /// <summary>
-        /// Returns a generic fallback Addressables address for POI media.
-        /// </summary>
-        public static string GetPoiGenericMediaAddress(string poiId, string assetName)
+        public static string GetDirectionsAudioDescriptionAddress(
+            string projectId,
+            string poiId)
         {
-            return $"poi/{SanitizeAddressPart(poiId)}/media/{SanitizeAddressPart(assetName)}";
+            return
+                $"{GetDirectionsAddressRoot(projectId, poiId)}" +
+                "/audio/audio_description";
         }
 
-        /// <summary>
-        /// Returns a generic fallback Addressables address for directions media.
-        /// </summary>
-        public static string GetDirectionsGenericMediaAddress(string poiId, string assetName)
+        public static string GetDirectionsGenericMediaAddress(
+            string projectId,
+            string poiId,
+            string assetName)
         {
-            return $"poi/{SanitizeAddressPart(poiId)}/directions/media/{SanitizeAddressPart(assetName)}";
-        }
-        
-        /// <summary>
-        /// Returns the Addressables group name used for codex/menu data.
-        /// </summary>
-        public static string GetCodexGroupName()
-        {
-            return "Codex";
+            return
+                $"{GetDirectionsAddressRoot(projectId, poiId)}/media/" +
+                SanitizeAddressPart(assetName);
         }
 
-        /// <summary>
-        /// Returns the Addressables label used to download/load all codex/menu data.
-        /// </summary>
-        public static string GetCodexLabel()
+        // ============================================================
+        // CODEX
+        // ============================================================
+
+        public static string GetCodexGroupName(
+            string projectId)
         {
-            return "codex";
+            return
+                $"THEODEN_{SanitizeAddressPart(projectId)}_Codex";
         }
 
-        /// <summary>
-        /// Returns the Addressables address for a codex/menu JSON file.
-        /// </summary>
-        public static string GetCodexJsonAddress(LanguageList language)
+        public static string GetCodexLabel(
+            string projectId)
         {
-            return $"codex/json/codex_{language}";
+            return
+                $"theoden_{SanitizeAddressPart(projectId)}_codex";
         }
 
-        /// <summary>
-        /// Sanitizes one Addressables address segment.
-        /// </summary>
-        private static string SanitizeAddressPart(string value)
+        public static string GetCodexJsonAddress(
+            string projectId,
+            LanguageList language)
+        {
+            string project = SanitizeAddressPart(projectId);
+
+            return
+                $"theoden/{project}/codex/json/codex_{language}";
+        }
+
+        // ============================================================
+        // INTERNAL ROOTS
+        // ============================================================
+
+        private static string GetPoiAddressRoot(
+            string projectId,
+            string poiId)
+        {
+            return
+                $"theoden/{SanitizeAddressPart(projectId)}/poi/" +
+                SanitizeAddressPart(poiId);
+        }
+
+        private static string GetDirectionsAddressRoot(
+            string projectId,
+            string poiId)
+        {
+            return
+                $"{GetPoiAddressRoot(projectId, poiId)}/directions";
+        }
+
+        // ============================================================
+        // SANITIZATION
+        // ============================================================
+
+        public static string SanitizeAddressPart(
+            string value)
         {
             if (string.IsNullOrWhiteSpace(value))
                 return "unnamed";
@@ -158,6 +218,190 @@ namespace Addressing
                 .Replace(" ", "_")
                 .Replace("\\", "_")
                 .Replace("/", "_");
+        }
+
+        // ============================================================
+        // TEMPORARY LEGACY OVERLOADS
+        // ============================================================
+
+        /*
+         * These overloads keep the project compiling while the old
+         * call sites are migrated. Remove them when every exporter,
+         * validator, and runtime loader uses projectId.
+         */
+
+        [Obsolete(
+            "Use GetPoiGroupName(projectId, poiId)."
+        )]
+        public static string GetPoiGroupName(string poiId)
+        {
+            return $"POI_{SanitizeAddressPart(poiId)}";
+        }
+
+        [Obsolete(
+            "Use GetPoiLabel(projectId, poiId)."
+        )]
+        public static string GetPoiLabel(string poiId)
+        {
+            return $"poi_{SanitizeAddressPart(poiId)}";
+        }
+
+        [Obsolete(
+            "Use GetDirectionsGroupName(projectId, poiId)."
+        )]
+        public static string GetDirectionsGroupName(string poiId)
+        {
+            return $"Directions_{SanitizeAddressPart(poiId)}";
+        }
+
+        [Obsolete(
+            "Use GetDirectionsLabel(projectId, poiId)."
+        )]
+        public static string GetDirectionsLabel(string poiId)
+        {
+            return $"directions_{SanitizeAddressPart(poiId)}";
+        }
+
+        [Obsolete(
+            "Use GetPoiJsonAddress(projectId, poiId, language)."
+        )]
+        public static string GetPoiJsonAddress(
+            string poiId,
+            LanguageList language)
+        {
+            string poi = SanitizeAddressPart(poiId);
+
+            return $"poi/{poi}/json/{poi}_{language}";
+        }
+
+        [Obsolete(
+            "Use GetDirectionsJsonAddress(projectId, poiId, language)."
+        )]
+        public static string GetDirectionsJsonAddress(
+            string poiId,
+            LanguageList language)
+        {
+            string poi = SanitizeAddressPart(poiId);
+
+            return
+                $"poi/{poi}/directions/json/" +
+                $"{poi}_directions_{language}";
+        }
+
+        [Obsolete(
+            "Use GetDirectionsImageAddress(projectId, poiId, assetName)."
+        )]
+        public static string GetDirectionsImageAddress(
+            string poiId,
+            string assetName)
+        {
+            return
+                $"poi/{SanitizeAddressPart(poiId)}/directions/images/" +
+                SanitizeAddressPart(assetName);
+        }
+
+        [Obsolete(
+            "Use GetDirectionsAudioDescriptionAddress(projectId, poiId)."
+        )]
+        public static string GetDirectionsAudioDescriptionAddress(
+            string poiId)
+        {
+            return
+                $"poi/{SanitizeAddressPart(poiId)}" +
+                "/directions/audio/audio_description";
+        }
+
+        [Obsolete(
+            "Use GetPoiBadgeAddress(projectId, poiId, assetName)."
+        )]
+        public static string GetPoiBadgeAddress(
+            string poiId,
+            string assetName)
+        {
+            return
+                $"poi/{SanitizeAddressPart(poiId)}/badge/" +
+                SanitizeAddressPart(assetName);
+        }
+
+        [Obsolete(
+            "Use GetPoiImageAddress(projectId, poiId, assetName)."
+        )]
+        public static string GetPoiImageAddress(
+            string poiId,
+            string assetName)
+        {
+            return
+                $"poi/{SanitizeAddressPart(poiId)}/images/" +
+                SanitizeAddressPart(assetName);
+        }
+
+        [Obsolete(
+            "Use GetPoiMusicAddress(projectId, poiId)."
+        )]
+        public static string GetPoiMusicAddress(string poiId)
+        {
+            return
+                $"poi/{SanitizeAddressPart(poiId)}/audio/music";
+        }
+
+        [Obsolete(
+            "Use GetPoiAudioDescriptionAddress(projectId, poiId)."
+        )]
+        public static string GetPoiAudioDescriptionAddress(
+            string poiId)
+        {
+            return
+                $"poi/{SanitizeAddressPart(poiId)}" +
+                "/audio/audio_description";
+        }
+
+        [Obsolete(
+            "Use GetPoiGenericMediaAddress(projectId, poiId, assetName)."
+        )]
+        public static string GetPoiGenericMediaAddress(
+            string poiId,
+            string assetName)
+        {
+            return
+                $"poi/{SanitizeAddressPart(poiId)}/media/" +
+                SanitizeAddressPart(assetName);
+        }
+
+        [Obsolete(
+            "Use GetDirectionsGenericMediaAddress(projectId, poiId, assetName)."
+        )]
+        public static string GetDirectionsGenericMediaAddress(
+            string poiId,
+            string assetName)
+        {
+            return
+                $"poi/{SanitizeAddressPart(poiId)}/directions/media/" +
+                SanitizeAddressPart(assetName);
+        }
+
+        [Obsolete(
+            "Use GetCodexGroupName(projectId)."
+        )]
+        public static string GetCodexGroupName()
+        {
+            return "Codex";
+        }
+
+        [Obsolete(
+            "Use GetCodexLabel(projectId)."
+        )]
+        public static string GetCodexLabel()
+        {
+            return "codex";
+        }
+
+        [Obsolete(
+            "Use GetCodexJsonAddress(projectId, language)."
+        )]
+        public static string GetCodexJsonAddress(
+            LanguageList language)
+        {
+            return $"codex/json/codex_{language}";
         }
     }
 }

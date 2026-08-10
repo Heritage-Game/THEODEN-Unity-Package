@@ -26,6 +26,7 @@ public class CodexCreatorWindow : EditorWindow
     [SerializeField]
     private CodexMenu menuData = new CodexMenu();
 
+    private Vector2 _scrollPosition;
     private SerializedObject _serializedWindow;
     private SerializedProperty _itemsProperty;
 
@@ -72,6 +73,7 @@ public class CodexCreatorWindow : EditorWindow
 
         _serializedWindow.Update();
 
+        
         DrawProjectFolderSection();
 
         if (_projectContext == null || !_projectContext.IsValid)
@@ -79,6 +81,7 @@ public class CodexCreatorWindow : EditorWindow
             _serializedWindow.ApplyModifiedProperties();
             return;
         }
+        _scrollPosition = EditorGUILayout.BeginScrollView(_scrollPosition);
 
         DrawLanguageSection();
 
@@ -92,6 +95,8 @@ public class CodexCreatorWindow : EditorWindow
 
         GUILayout.Space(10);
 
+        EditorGUILayout.EndScrollView();
+        
         if (GUILayout.Button("Add Item From POI Registry"))
             AddItemFromRegistry();
 
@@ -106,6 +111,7 @@ public class CodexCreatorWindow : EditorWindow
             SaveJson();
 
         _serializedWindow.ApplyModifiedProperties();
+        
     }
 
     /// <summary>
@@ -656,6 +662,20 @@ public class CodexCreatorWindow : EditorWindow
             return;
 
         LanguageList language = GetSelectedLanguage();
+        
+        string projectId =
+            _projectContext.projectId;
+
+        if (string.IsNullOrWhiteSpace(projectId))
+        {
+            EditorUtility.DisplayDialog(
+                "Export Failed",
+                "The selected THEODEN project has no valid project id.",
+                "OK"
+            );
+
+            return;
+        }
 
         menuData.language = language;
         UpdateDirectionParametersForCurrentLanguage();
@@ -664,6 +684,7 @@ public class CodexCreatorWindow : EditorWindow
 
         if (!CodexExportService.ExportCodex(
                 menuData,
+                projectId,
                 language,
                 _projectContext.codexFolderPath,
                 fileName,

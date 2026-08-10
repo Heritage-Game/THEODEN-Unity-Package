@@ -15,6 +15,7 @@ public class TheodenProjectContext
     public LanguageConfig languageConfig;
     public POIRegistry poiRegistry;
 
+    public string projectId => theodenProjectConfig.projectId;
     public string poisFolderPath => theodenProjectConfig.poisFolderPath;
     public string codexFolderPath => theodenProjectConfig.codexFolderPath;
     public string directionsFolderPath => theodenProjectConfig.directionsFolderPath;
@@ -28,9 +29,11 @@ public class TheodenProjectContext
         theodenProjectConfig != null &&
         languageConfig != null &&
         poiRegistry != null &&
+        !string.IsNullOrEmpty(projectId) &&
         !string.IsNullOrWhiteSpace(poisFolderPath) &&
         !string.IsNullOrWhiteSpace(codexFolderPath) &&
         !string.IsNullOrWhiteSpace(directionsFolderPath) &&
+        !string.IsNullOrWhiteSpace(mediaFolderPath) &&
         !string.IsNullOrWhiteSpace(qrCodesFolderPath) &&
         availableLanguages.Count > 0 &&
         availablePois.Count > 0;

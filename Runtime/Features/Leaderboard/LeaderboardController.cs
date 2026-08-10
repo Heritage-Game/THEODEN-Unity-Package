@@ -1,82 +1,52 @@
-using TMPro;
 using UnityEngine;
-using UnityEngine.SceneManagement;
-using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 public class LeaderboardController : MonoBehaviour
 {
-    [Header("UI References")]
-    [SerializeField] private Button backButton;
-    [SerializeField] private TMP_Text playerNameText;
+    [SerializeField]
+    private UIDocument uiDocument;
 
-    [Header("PlayerPrefs")]
-    [SerializeField] private string nicknamePlayerPrefsKey = "NICKNAME";
-    [SerializeField] private string fallbackNickname = "Player";
+    private Button backButton;
+    private Button syncButton;
 
-    [Header("Fallback Navigation")]
-    [SerializeField] private string fallbackBackSceneName = "Menu";
+    private Label playerLabel;
+    private Label scoreLabel;
+    private Label totalTimeLabel;
+    private Label levelsCompletedLabel;
+    private Label completionPercentageLabel;
 
-    private void Awake()
+    private VisualElement progressBarFill;
+    private VisualElement leaderboardEntries;
+
+    private void OnEnable()
     {
-        if (backButton != null)
-        {
-            backButton.onClick.AddListener(OnBackClicked);
-        }
-        else
-        {
-            Debug.LogWarning("[LeaderboardController] BackButton reference is missing.");
-        }
-    }
+        VisualElement root =
+            uiDocument.rootVisualElement;
 
-    private void Start()
-    {
-        LoadNickname();
-    }
+        playerLabel =
+            root.Q<Label>("player_label");
 
-    private void OnDestroy()
-    {
-        if (backButton != null)
-        {
-            backButton.onClick.RemoveListener(OnBackClicked);
-        }
-    }
+        scoreLabel =
+            root.Q<Label>("score_label");
 
-    private void LoadNickname()
-    {
-        string nickname = PlayerPrefs.GetString(nicknamePlayerPrefsKey, fallbackNickname);
+        totalTimeLabel =
+            root.Q<Label>("total_time_label");
 
-        if (string.IsNullOrWhiteSpace(nickname))
-        {
-            nickname = fallbackNickname;
-        }
+        levelsCompletedLabel =
+            root.Q<Label>("levels_completed_label");
 
-        if (playerNameText != null)
-        {
-            playerNameText.text = nickname;
-        }
-        else
-        {
-            Debug.LogWarning("[LeaderboardController] PlayerNameText reference is missing.");
-        }
-    }
+        completionPercentageLabel =
+            root.Q<Label>("completion_percentage_label");
 
-    private void OnBackClicked()
-    {
-        // Prefer your NavigationManager if it exists in the project.
-        if (NavigationManager.Instance != null)
-        {
-            NavigationManager.Instance.GoBack();
-            return;
-        }
+        progressBarFill =
+            root.Q<VisualElement>("progress_bar_fill");
 
-        // Fallback if the leaderboard scene was opened directly during testing.
-        if (!string.IsNullOrWhiteSpace(fallbackBackSceneName))
-        {
-            SceneManager.LoadScene(fallbackBackSceneName);
-        }
-        else
-        {
-            Debug.LogWarning("[LeaderboardController] No NavigationManager found and no fallback scene set.");
-        }
+        leaderboardEntries =
+            root.Q<VisualElement>("leaderboard_entries");
+
+        syncButton =
+            root.Q<Button>("sync_leaderboard_button");
+
+        //syncButton.clicked += OnSyncLeaderboardClicked;
     }
 }

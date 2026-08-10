@@ -11,6 +11,13 @@ using UnityEngine.Serialization;
 //[CreateAssetMenu(fileName = "TheodenProjectConfig", menuName = "THEODEN/TheodenProjectConfig")]
 public class TheodenProjectConfig : ScriptableObject
 {
+    [Header("Project Identity")]
+    [Tooltip(
+        "Stable identifier used to namespace Addressables content. " +
+        "Do not change it after content has been published."
+    )]
+    public string projectId;
+    
     [Header("Application")]
     public string applicationName;
     public string folderPath;
@@ -36,5 +43,11 @@ public class TheodenProjectConfig : ScriptableObject
     public string remoteBuildPath;
     public string remoteLoadPath;
     //public bool updateAtFirstOpeningOnly;
+    
+    [Header("Build")]
+    public string applicationIdentifier = "com.example.theodenapp";
+    public string applicationVersion = "1.0.0";
+    [Min(1)]
+    public int androidVersionCode = 1;
 
 }

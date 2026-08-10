@@ -56,9 +56,8 @@ public class QRScannerPage : MonoBehaviour, IPointerClickHandler
     }
 
     // ============================================================
-    // MOCK SCANNER — No buttons needed! Uses Update() to detect clicks
+    // MOCK SCANNER
     // ============================================================
-
     void SetupMockScanner()
     {
         instructionText.text = "MOCK MODE — Tap anywhere on screen to simulate scan";
@@ -134,7 +133,6 @@ public class QRScannerPage : MonoBehaviour, IPointerClickHandler
     // ============================================================
     // REAL CAMERA
     // ============================================================
-
     IEnumerator SetupCamera()
     {
         instructionText.text = "Starting camera...";
@@ -198,7 +196,6 @@ public class QRScannerPage : MonoBehaviour, IPointerClickHandler
     // ============================================================
     // QR SCANNING
     // ============================================================
-
     void TryScanQRCode()
     {
         try
@@ -239,7 +236,6 @@ public class QRScannerPage : MonoBehaviour, IPointerClickHandler
     // ============================================================
     // QR DETECTED → NAVIGATE
     // ============================================================
-
     void OnQRCodeDetected(string qrContent)
     {
 #if UNITY_ANDROID || UNITY_IOS
@@ -262,7 +258,6 @@ public class QRScannerPage : MonoBehaviour, IPointerClickHandler
     // ============================================================
     // SAFE SCENE LOADING
     // ============================================================
-
     void SafeLoadScene(string sceneName)
     {
         if (Application.CanStreamedLevelBeLoaded(sceneName))

@@ -36,6 +36,12 @@ public abstract class POIModel
         [JsonIgnore]
         public Sprite sprite;
     }
+    
+    /// <summary>
+    /// Unique identifier of the Point of Interest.
+    /// Used to track progression and prevent points from being awarded more than once.
+    /// </summary>
+    public string poiId;
 
     /// <summary>
     /// Display name of the Point of Interest.

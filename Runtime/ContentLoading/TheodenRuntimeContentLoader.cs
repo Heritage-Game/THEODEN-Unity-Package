@@ -5,6 +5,7 @@ using Newtonsoft.Json;
 using UnityEngine;
 using UnityEngine.AddressableAssets;
 using UnityEngine.ResourceManagement.AsyncOperations;
+using Config;
 
 namespace ContentLoading
 {
@@ -22,6 +23,9 @@ namespace ContentLoading
     /// </remarks>
     public static class TheodenRuntimeContentLoader
     {
+        // The project id from the Runtime Config
+        private static string ActiveProjectId =>
+            TheodenRuntimeConfigProvider.ProjectId;
         /// <summary>
         /// Loads the codex menu JSON for the selected language.
         /// </summary>
@@ -33,11 +37,15 @@ namespace ContentLoading
         /// </returns>
         public static async Task<CodexMenu> LoadCodexAsync(LanguageList language)
         {
-            string address = TheodenAddressablesNaming.GetCodexJsonAddress(language);
+            string address =
+                TheodenAddressablesNaming.GetCodexJsonAddress(
+                    ActiveProjectId,
+                    language
+                );
 
-            TextAsset textAsset = await LoadTextAssetAsync(address);
+            string json = await LoadJsonTextAsync(address);
 
-            return DeserializeJson<CodexMenu>(textAsset.text, address);
+            return DeserializeJson<CodexMenu>(json, address);
         }
         
         /// <summary>
@@ -51,11 +59,13 @@ namespace ContentLoading
         /// </returns>
         public static async Task<string> LoadCodexJsonAsync(LanguageList language)
         {
-            string address = TheodenAddressablesNaming.GetCodexJsonAddress(language);
+            string address =
+                TheodenAddressablesNaming.GetCodexJsonAddress(
+                    ActiveProjectId,
+                    language
+                );
 
-            TextAsset textAsset = await LoadTextAssetAsync(address);
-
-            return textAsset.text;
+            return await LoadJsonTextAsync(address);
         }
 
         /// <summary>
@@ -66,7 +76,11 @@ namespace ContentLoading
         /// </param>
         public static async Task DownloadDirectionsAsync(string poiId)
         {
-            string label = TheodenAddressablesNaming.GetDirectionsLabel(poiId);
+            string label =
+                TheodenAddressablesNaming.GetDirectionsLabel(
+                    ActiveProjectId,
+                    poiId
+                );
             await DownloadDependenciesAsync(label);
         }
 
@@ -78,7 +92,11 @@ namespace ContentLoading
         /// </param>
         public static async Task DownloadPoiAsync(string poiId)
         {
-            string label = TheodenAddressablesNaming.GetPoiLabel(poiId);
+            string label =
+                TheodenAddressablesNaming.GetPoiLabel(
+                    ActiveProjectId,
+                    poiId
+                );
             await DownloadDependenciesAsync(label);
         }
         
@@ -91,14 +109,14 @@ namespace ContentLoading
         {
             await DownloadPoiAsync(poiId);
 
-            string address = TheodenAddressablesNaming.GetPoiJsonAddress(
-                poiId,
-                language
-            );
+            string address =
+                TheodenAddressablesNaming.GetPoiJsonAddress(
+                    ActiveProjectId,
+                    poiId,
+                    language
+                );
 
-            TextAsset textAsset = await LoadTextAssetAsync(address);
-
-            return textAsset.text;
+            return await LoadJsonTextAsync(address);
         }
 
         /// <summary>
@@ -122,14 +140,16 @@ namespace ContentLoading
         {
             await DownloadDirectionsAsync(poiId);
 
-            string address = TheodenAddressablesNaming.GetDirectionsJsonAddress(
-                poiId,
-                language
-            );
+            string address =
+                TheodenAddressablesNaming.GetDirectionsJsonAddress(
+                    ActiveProjectId,
+                    poiId,
+                    language
+                );
 
-            TextAsset textAsset = await LoadTextAssetAsync(address);
+            string json = await LoadJsonTextAsync(address);
 
-            return DeserializeJson<TDirections>(textAsset.text, address);
+            return DeserializeJson<TDirections>(json, address);
         }
 
         /// <summary>
@@ -150,14 +170,14 @@ namespace ContentLoading
         {
             await DownloadDirectionsAsync(poiId);
 
-            string address = TheodenAddressablesNaming.GetDirectionsJsonAddress(
-                poiId,
-                language
-            );
+            string address =
+                TheodenAddressablesNaming.GetDirectionsJsonAddress(
+                    ActiveProjectId,
+                    poiId,
+                    language
+                );
 
-            TextAsset textAsset = await LoadTextAssetAsync(address);
-
-            return textAsset.text;
+            return await LoadJsonTextAsync(address);
         }
         
         /// <summary>
@@ -181,14 +201,16 @@ namespace ContentLoading
         {
             await DownloadPoiAsync(poiId);
 
-            string address = TheodenAddressablesNaming.GetPoiJsonAddress(
-                poiId,
-                language
-            );
+            string address =
+                TheodenAddressablesNaming.GetPoiJsonAddress(
+                    ActiveProjectId,
+                    poiId,
+                    language
+                );
 
-            TextAsset textAsset = await LoadTextAssetAsync(address);
+            string json = await LoadJsonTextAsync(address);
 
-            return DeserializeJson<TPoi>(textAsset.text, address);
+            return DeserializeJson<TPoi>(json, address);
         }
 
         /// <summary>
@@ -225,29 +247,41 @@ namespace ContentLoading
         }
 
         /// <summary>
-        /// Loads a JSON file stored as an Addressable TextAsset.
+        /// Loads a JSON file stored as an Addressable TextAsset,
+        /// copies its text, and releases the Addressables handle.
         /// </summary>
         /// <param name="address">
         /// Addressables address of the JSON TextAsset.
         /// </param>
         /// <returns>
-        /// The loaded TextAsset.
+        /// The raw JSON string.
         /// </returns>
-        private static async Task<TextAsset> LoadTextAssetAsync(string address)
+        private static async Task<string> LoadJsonTextAsync(string address)
         {
             if (string.IsNullOrWhiteSpace(address))
                 throw new ArgumentException("Address is null or empty.", nameof(address));
 
             AsyncOperationHandle<TextAsset> handle = Addressables.LoadAssetAsync<TextAsset>(address);
-            await handle.Task;
 
-            if (handle.Status != AsyncOperationStatus.Succeeded)
+            try
             {
-                Addressables.Release(handle);
-                throw new Exception($"Failed to load Addressable JSON at address: {address}");
-            }
+                await handle.Task;
 
-            return handle.Result;
+                if (handle.Status != AsyncOperationStatus.Succeeded)
+                {
+                    throw new Exception(
+                        $"Failed to load Addressable JSON at address: {address}",
+                        handle.OperationException
+                    );
+                }
+
+                return handle.Result.text;
+            }
+            finally
+            {
+                if (handle.IsValid())
+                    Addressables.Release(handle);
+            }
         }
 
         /// <summary>

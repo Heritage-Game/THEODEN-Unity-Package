@@ -1,143 +1,178 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.UIElements;
+using Core.Models;
 
 /// <summary>
-/// Controls the multiple-choice challenge scene.
+/// Controls the multiple-choice challenge scene using UI Toolkit.
 /// </summary>
-/// <remarks>
-/// This manager reads the currently loaded POI from <see cref="DataManager.SelectedPOI"/>
-/// and expects it to be a <see cref="MultipleChoicePOIModel"/>.
-/// 
-/// Answer buttons are generated dynamically from the runtime model, so the challenge
-/// is no longer limited to exactly four answers.
-/// 
-/// This class currently supports only multiple-choice POIs. Open-answer challenges
-/// should use a different manager or a higher-level challenge controller that chooses
-/// the correct view based on the concrete POI model type.
-/// </remarks>
 public class ChallengeGameManager : MonoBehaviour
 {
     // ============================================================
-    // UI REFERENCES
+    // UI REFERENCES (UI TOOLKIT)
     // ============================================================
-
-    /// <summary>
-    /// Text component used to display the POI name.
-    /// </summary>
     [Header("UI References")]
-    [SerializeField] private TMP_Text poiNameText;
+    [SerializeField] private UIDocument uiDocument;
 
-    /// <summary>
-    /// Text component used to display the initial description, question and hints.
-    /// </summary>
-    [SerializeField] private TMP_Text questionText;
+    private VisualElement root;
+    private Label poiNameText;
+    private Label questionText;
+    private VisualElement answersParent;
+    private Button hintButton;
+    private Button backButton;
+    private VisualElement resultContainer;
+    private Label resultLabel;
+    private Label progressLabel;
 
-    /// <summary>
-    /// Parent transform where answer buttons are instantiated.
-    /// </summary>
-    [SerializeField] private Transform answersParent;
-
-    /// <summary>
-    /// Prefab used to create one answer button.
-    /// </summary>
-    /// <remarks>
-    /// The prefab should contain a <see cref="Button"/> component and a child
-    /// <see cref="TMP_Text"/> component.
-    /// </remarks>
-    [SerializeField] private Button answerButtonPrefab;
-
-    /// <summary>
-    /// Button used to show the challenge hint.
-    /// </summary>
-    [SerializeField] private Button hintButton;
+    // ============================================================
+    // TEMPLATE
+    // ============================================================
+    [Header("Templates")]
+    [SerializeField] private VisualTreeAsset answerButtonTemplate;
 
     // ============================================================
     // COLORS
     // ============================================================
-
-    /// <summary>
-    /// Normal answer button color.
-    /// </summary>
     [Header("Colors")]
-    [SerializeField] private Color normalColor = new Color(0.176f, 0.353f, 0.153f);
-
-    /// <summary>
-    /// Color used for the correct answer.
-    /// </summary>
-    [SerializeField] private Color correctColor = new Color(0.2f, 0.7f, 0.2f);
-
-    /// <summary>
-    /// Color used for the wrong selected answer.
-    /// </summary>
+    //[SerializeField] private Color normalColor = new Color(0.217f, 0.217f, 0.217f);
+    [SerializeField] private Color normalColor = Color.grey;
+    [SerializeField] private Color correctColor = new Color(0.518f, 0.769f, 0.255f);
     [SerializeField] private Color wrongColor = new Color(0.8f, 0.2f, 0.2f);
+    [SerializeField] private Color normalTextColor = Color.white;
+    [SerializeField] private Color correctTextColor = Color.white;
+    [SerializeField] private Color wrongTextColor = Color.white;
 
     // ============================================================
     // RUNTIME STATE
     // ============================================================
-
-    /// <summary>
-    /// Currently loaded multiple-choice POI.
-    /// </summary>
     private MultipleChoicePOIModel currentPOI;
-
-    /// <summary>
-    /// Normalized key of the correct answer.
-    /// </summary>
     private string correctAnswerKey;
-
-    /// <summary>
-    /// True after the player has selected an answer and before retry is allowed.
-    /// </summary>
     private bool answered;
+    private bool isWaitingForRetry;
+    private int wrongAttempts = 0;
+    private const int MAX_ATTEMPTS = 3;
 
-    /// <summary>
-    /// Runtime answer buttons generated from the POI model.
-    /// </summary>
+    private readonly List<VisualElement> answerContainers = new List<VisualElement>();
     private readonly List<Button> answerButtons = new List<Button>();
-
-    /// <summary>
-    /// Maps normalized answer keys to their generated buttons.
-    /// </summary>
     private readonly Dictionary<string, Button> answerButtonsByKey = new Dictionary<string, Button>();
 
     // ============================================================
     // UNITY LIFECYCLE
     // ============================================================
-
-    /// <summary>
-    /// Loads the current POI and displays its challenge.
-    /// </summary>
-    private void Start()
+    private void OnEnable()
     {
+        if (uiDocument == null)
+        {
+            Debug.LogError("[ChallengeGameManager] UIDocument not assigned.");
+            return;
+        }
+
+        root = uiDocument.rootVisualElement;
+        BindUIElements();
+        SetupButtons();
         LoadAndDisplay();
     }
 
-    /// <summary>
-    /// Cleans generated answer buttons and button listeners.
-    /// </summary>
-    private void OnDestroy()
+    private void OnDisable()
     {
-        ClearGeneratedAnswers();
-
         if (hintButton != null)
-            hintButton.onClick.RemoveAllListeners();
+            hintButton.clicked -= OnHintClicked;
+
+        if (backButton != null)
+            backButton.clicked -= OnBackClicked;
+        ClearGeneratedAnswers();
+    }
+
+    // ============================================================
+    // UI BINDING
+    // ============================================================
+    private void BindUIElements()
+    {
+        poiNameText = root.Q<Label>("poi_progress_label");
+        questionText = root.Q<Label>("question_label");
+        answersParent = root.Q<VisualElement>("answer_container");
+        hintButton = root.Q<Button>("hint_button");
+        resultContainer = root.Q<VisualElement>("result_container");
+        resultLabel = root.Q<Label>("result_label");
+        backButton = root.Q<Button>("back_button");
+        progressLabel = root.Q<Label>("progress_label");
+
+        if (answersParent != null)
+        {
+            answersParent.style.flexDirection = FlexDirection.Column;
+            answersParent.style.flexGrow = 1;
+            answersParent.style.width = new Length(100, LengthUnit.Percent);
+        }
+
+        if (poiNameText == null)
+            Debug.LogWarning("[ChallengeGameManager] 'poi_name_text' not found in UXML.");
+
+        if (questionText == null)
+            Debug.LogWarning("[ChallengeGameManager] 'question_text' not found in UXML.");
+
+        if (answersParent == null)
+            Debug.LogWarning("[ChallengeGameManager] 'answers_parent' not found in UXML.");
+
+        if (hintButton == null)
+            Debug.LogWarning("[ChallengeGameManager] 'hint_button' not found in UXML.");
+
+        if (resultContainer == null)
+            Debug.LogWarning("[ChallengeGameManager] 'result_container' not found in UXML.");
+
+        if (resultLabel == null)
+            Debug.LogWarning("[ChallengeGameManager] 'result_label' not found in UXML.");
+
+        if (backButton == null)
+            Debug.LogWarning("[ChallengeGameManager] 'back_button' not found in UXML.");
+
+        if (progressLabel == null)
+            Debug.LogWarning("[ChallengeGameManager] 'progress_label' not found in UXML.");
+    }
+
+    // ============================================================
+    // SETUP
+    // ============================================================
+    private void SetupButtons()
+    {
+        if (hintButton != null)
+        {
+            hintButton.clicked -= OnHintClicked;
+            hintButton.clicked += OnHintClicked;
+        }
+
+        if (backButton != null)
+        {
+            backButton.clicked -= OnBackClicked;
+            backButton.clicked += OnBackClicked;
+        }
+    }
+
+    private void OnBackClicked()
+    {
+        Debug.Log("[ChallengeGameManager] Back button clicked.");
+
+        StopAllCoroutines();
+
+        if (NavigationManager.Instance != null)
+        {
+            NavigationManager.Instance.GoBack();
+        }
+        else
+        {
+            Debug.LogError("[ChallengeGameManager] NavigationManager is missing.");
+        }
     }
 
     // ============================================================
     // LOADING
     // ============================================================
-
-    /// <summary>
-    /// Loads the selected POI from the DataManager and validates that it is a multiple-choice challenge.
-    /// </summary>
     private void LoadAndDisplay()
     {
         if (DataManager.Instance == null)
         {
-            Debug.LogError("[Challenge] DataManager is missing.");
+            Debug.LogError("[ChallengeGameManager] DataManager is missing.");
+            ShowFallback();
             return;
         }
 
@@ -145,23 +180,24 @@ public class ChallengeGameManager : MonoBehaviour
 
         if (selectedPOI == null)
         {
-            Debug.LogError("[Challenge] SelectedPOI is null.");
+            Debug.LogError("[ChallengeGameManager] SelectedPOI is null.");
+            ShowFallback();
             return;
         }
 
         if (selectedPOI is not MultipleChoicePOIModel multipleChoicePOI)
         {
             Debug.LogError(
-                "[Challenge] SelectedPOI is not a MultipleChoicePOIModel. Actual type: " +
+                "[ChallengeGameManager] SelectedPOI is not a MultipleChoicePOIModel. Actual type: " +
                 selectedPOI.GetType().Name
             );
-
+            ShowFallback();
             return;
         }
 
         currentPOI = multipleChoicePOI;
 
-        Debug.Log("[Challenge] Loading challenge for POI: " + currentPOI.poiName);
+        Debug.Log("[ChallengeGameManager] Loading challenge for POI: " + currentPOI.poiName);
 
         DisplayChallenge();
     }
@@ -169,19 +205,17 @@ public class ChallengeGameManager : MonoBehaviour
     // ============================================================
     // DISPLAY
     // ============================================================
-
-    /// <summary>
-    /// Displays the multiple-choice challenge UI.
-    /// </summary>
     private void DisplayChallenge()
     {
         if (currentPOI == null)
         {
-            Debug.LogError("[Challenge] currentPOI is null.");
+            Debug.LogError("[ChallengeGameManager] currentPOI is null.");
             return;
         }
 
         answered = false;
+        isWaitingForRetry = false;
+        wrongAttempts = 0;
         correctAnswerKey = NormalizeAnswerKey(currentPOI.correctAnswer);
 
         if (poiNameText != null)
@@ -192,15 +226,14 @@ public class ChallengeGameManager : MonoBehaviour
         ClearGeneratedAnswers();
         CreateAnswerButtons();
 
-        SetupHintButton();
+        HideResult();
 
-        Debug.Log("[Challenge] Question: " + currentPOI.question);
-        Debug.Log("[Challenge] Correct answer: " + correctAnswerKey);
+        UpdateProgressLabel();
+
+        Debug.Log("[ChallengeGameManager] Question: " + currentPOI.question);
+        Debug.Log("[ChallengeGameManager] Correct answer: " + correctAnswerKey);
     }
 
-    /// <summary>
-    /// Updates the question text using the initial description and question fields.
-    /// </summary>
     private void SetQuestionText()
     {
         if (questionText == null || currentPOI == null)
@@ -213,92 +246,68 @@ public class ChallengeGameManager : MonoBehaviour
         questionText.text = initialDescription + currentPOI.question;
     }
 
-    /// <summary>
-    /// Configures the hint button listener.
-    /// </summary>
-    private void SetupHintButton()
-    {
-        if (hintButton == null)
-            return;
-
-        hintButton.onClick.RemoveAllListeners();
-        hintButton.onClick.AddListener(OnHintClicked);
-    }
-
     // ============================================================
     // ANSWER BUTTON GENERATION
     // ============================================================
-
-    /// <summary>
-    /// Creates one answer button for each answer available in the current POI model.
-    /// </summary>
     private void CreateAnswerButtons()
     {
         if (currentPOI.answers == null || currentPOI.answers.Count == 0)
         {
-            Debug.LogError("[Challenge] No answers found in MultipleChoicePOIModel.");
+            Debug.LogError("[ChallengeGameManager] No answers found in MultipleChoicePOIModel.");
             return;
         }
 
         if (answersParent == null)
         {
-            Debug.LogError("[Challenge] Answers Parent is not assigned.");
+            Debug.LogError("[ChallengeGameManager] Answers Parent is not assigned.");
             return;
         }
 
-        if (answerButtonPrefab == null)
+        if (answerButtonTemplate == null)
         {
-            Debug.LogError("[Challenge] Answer Button Prefab is not assigned.");
+            Debug.LogError("[ChallengeGameManager] Answer Button Template is not assigned.");
             return;
         }
 
         foreach (MultipleChoicePOIModel.AnswerEntry answer in currentPOI.answers)
         {
-            if (answer == null)
-                continue;
-
+            if (answer == null) continue;
             CreateAnswerButton(answer);
         }
     }
 
-    /// <summary>
-    /// Creates and initializes one answer button.
-    /// </summary>
-    /// <param name="answer">
-    /// Answer data used to populate the button.
-    /// </param>
     private void CreateAnswerButton(MultipleChoicePOIModel.AnswerEntry answer)
     {
-        Button button = Instantiate(answerButtonPrefab, answersParent);
+        VisualElement buttonElement = answerButtonTemplate.Instantiate();
+        buttonElement.style.marginBottom = 200;
+        buttonElement.style.marginTop = 0;
+
+        Button button = buttonElement.Q<Button>("answer_button");
+        VisualElement container = buttonElement.Q<VisualElement>("answer_container");
+
+        if (container == null) container = buttonElement;
 
         string normalizedKey = NormalizeAnswerKey(answer.key);
+        string displayText = BuildAnswerText(answer);
 
-        TMP_Text answerText = button.GetComponentInChildren<TMP_Text>();
+        if (button != null)
+        {
+            button.text = displayText;
+            button.style.backgroundColor = normalColor;
+            button.style.color = normalTextColor;
+            // listener
+            string capturedKey = normalizedKey;
+            button.clicked += () => OnAnswerClicked(capturedKey, container, button);
+        }
 
-        if (answerText != null)
-            answerText.text = BuildAnswerText(answer);
+        answersParent.Add(buttonElement);
 
-        button.interactable = true;
-        SetButtonColor(button, normalColor);
-
-        button.onClick.RemoveAllListeners();
-        button.onClick.AddListener(() => OnAnswerClicked(normalizedKey, button));
-
+        answerContainers.Add(buttonElement);
         answerButtons.Add(button);
 
-        if (!string.IsNullOrWhiteSpace(normalizedKey))
-            answerButtonsByKey[normalizedKey] = button;
+        if (!string.IsNullOrWhiteSpace(normalizedKey)) answerButtonsByKey[normalizedKey] = button;
     }
 
-    /// <summary>
-    /// Builds the displayed answer text.
-    /// </summary>
-    /// <param name="answer">
-    /// Answer entry.
-    /// </param>
-    /// <returns>
-    /// Formatted answer text.
-    /// </returns>
     private string BuildAnswerText(MultipleChoicePOIModel.AnswerEntry answer)
     {
         string key = string.IsNullOrWhiteSpace(answer.key)
@@ -315,20 +324,15 @@ public class ChallengeGameManager : MonoBehaviour
         return key + " " + value;
     }
 
-    /// <summary>
-    /// Removes all generated answer buttons and clears runtime mappings.
-    /// </summary>
     private void ClearGeneratedAnswers()
     {
-        foreach (Button button in answerButtons)
+        foreach (var container in answerContainers)
         {
-            if (button == null)
-                continue;
-
-            button.onClick.RemoveAllListeners();
-            Destroy(button.gameObject);
+            if (container != null && container.parent != null)
+                container.parent.Remove(container);
         }
 
+        answerContainers.Clear();
         answerButtons.Clear();
         answerButtonsByKey.Clear();
     }
@@ -336,122 +340,118 @@ public class ChallengeGameManager : MonoBehaviour
     // ============================================================
     // ANSWER SELECTION
     // ============================================================
-
-    /// <summary>
-    /// Handles answer button selection.
-    /// </summary>
-    /// <param name="answerKey">
-    /// Normalized selected answer key.
-    /// </param>
-    /// <param name="clickedButton">
-    /// Button clicked by the player.
-    /// </param>
-    private void OnAnswerClicked(string answerKey, Button clickedButton)
+    private void OnAnswerClicked(string answerKey, VisualElement container, Button button)
     {
-        if (answered)
+        Debug.Log($"[ChallengeGameManager] OnAnswerClicked - answered: {answered}, isWaitingForRetry: {isWaitingForRetry}, attempts: {wrongAttempts}/{MAX_ATTEMPTS}");
+
+        if (answered || isWaitingForRetry)
             return;
 
+        // NON USARE ChallengeSessionService.RegisterAttempt qui
+        // Gestisci tutto manualmente
         answered = true;
 
-        Debug.Log("[Challenge] Player selected: " + answerKey);
+        Debug.Log("[ChallengeGameManager] Player selected: " + answerKey);
 
-        if (answerKey == correctAnswerKey)
+        bool isCorrect = string.Equals(answerKey, correctAnswerKey, System.StringComparison.Ordinal);
+
+        if (isCorrect)
         {
-            HandleCorrectAnswer(clickedButton);
+            HandleCorrectAnswer(container, button);
+        }
+        else
+        {
+            HandleWrongAnswer(container, button);
+        }
+    }
+
+    private void HandleCorrectAnswer(VisualElement container, Button button)
+    {
+        Debug.Log("[ChallengeGameManager] Correct answer!");
+
+        SetAnswerStyle(container, button, correctColor, correctTextColor);
+        SetAnswerButtonsInteractable(false);
+
+        UpdateProgressLabel();
+
+        ShowResult("Correct answer!");
+        CompleteChallenge(solvedByPlayer:true);
+    }
+
+    private void HandleWrongAnswer(VisualElement container, Button button)
+    {
+        wrongAttempts++;
+        Debug.Log($"[ChallengeGameManager] Wrong answer. Attempt {wrongAttempts}/{MAX_ATTEMPTS}");
+
+        UpdateProgressLabel();
+
+        SetAnswerStyle(container, button, wrongColor, wrongTextColor);
+        SetAnswerButtonsInteractable(false);
+
+        if (wrongAttempts >= MAX_ATTEMPTS)
+        {
+            Button correctButton = GetButtonForKey(correctAnswerKey);
+            if (correctButton != null)
+            {
+                SetAnswerStyle(
+                    correctButton.parent,
+                    correctButton,
+                    correctColor,
+                    correctTextColor
+                );
+            }
+
+            ShowResult($"No attempts remaining.\nCorrect answer: {correctAnswerKey}");
+            CompleteChallenge(solvedByPlayer: false);
             return;
         }
 
-        HandleWrongAnswer(clickedButton);
-    }
+        string hint = string.IsNullOrWhiteSpace(currentPOI.hint)
+            ? $"Wrong answer. Try again ({wrongAttempts}/{MAX_ATTEMPTS})"
+            : $"Wrong answer. Hint: {currentPOI.hint} ({wrongAttempts}/{MAX_ATTEMPTS})";
 
-    /// <summary>
-    /// Handles the correct answer case.
-    /// </summary>
-    /// <param name="clickedButton">
-    /// Button clicked by the player.
-    /// </param>
-    private void HandleCorrectAnswer(Button clickedButton)
-    {
-        Debug.Log("[Challenge] Correct answer!");
+        ShowResult(hint);
 
-        SetButtonColor(clickedButton, correctColor);
-        SetAnswerButtonsInteractable(false);
-
-        StartCoroutine(ShowVictory());
-    }
-
-    /// <summary>
-    /// Handles the wrong answer case.
-    /// </summary>
-    /// <param name="clickedButton">
-    /// Button clicked by the player.
-    /// </param>
-    private void HandleWrongAnswer(Button clickedButton)
-    {
-        Debug.Log("[Challenge] Wrong answer.");
-
-        SetButtonColor(clickedButton, wrongColor);
-
-        Button correctButton = GetButtonForKey(correctAnswerKey);
-
-        if (correctButton != null)
-            SetButtonColor(correctButton, correctColor);
-
-        SetAnswerButtonsInteractable(false);
-
-        if (questionText != null)
-        {
-            string hint = string.IsNullOrWhiteSpace(currentPOI.hint)
-                ? "Try again."
-                : currentPOI.hint;
-
-            questionText.text = "<color=#CC0000>Wrong!</color>\n\n<b>Hint:</b> " + hint;
-        }
-
+        isWaitingForRetry = true;
         StartCoroutine(AllowRetry());
     }
 
-    /// <summary>
-    /// Allows the player to try again after a wrong answer.
-    /// </summary>
     private IEnumerator AllowRetry()
     {
-        yield return new WaitForSeconds(3f);
+        yield return new WaitForSeconds(1.5f);
 
         ResetButtonColors();
         SetAnswerButtonsInteractable(true);
         SetQuestionText();
-
+        HideResult();
+        UpdateProgressLabel();
         answered = false;
+        isWaitingForRetry = false;
 
-        Debug.Log("[Challenge] Try again.");
+        Debug.Log($"[ChallengeGameManager] Try again. Attempts left: {MAX_ATTEMPTS - wrongAttempts}");
     }
 
-    /// <summary>
-    /// Shows the current POI hint.
-    /// </summary>
+    // ============================================================
+    // HINT
+    // ============================================================
     private void OnHintClicked()
     {
         if (currentPOI == null || questionText == null)
+            return;
+
+        if (answered)
             return;
 
         string hint = string.IsNullOrWhiteSpace(currentPOI.hint)
             ? "No hint available."
             : currentPOI.hint;
 
-        questionText.text =
-            currentPOI.question +
-            "\n\n<b>Hint:</b> " +
-            hint;
+        questionText.text = currentPOI.question + "\n\n<b>Hint:</b> " + hint;
     }
 
     // ============================================================
     // VICTORY
     // ============================================================
-
-    /// <summary>
-    /// Handles challenge completion and returns to the Codex scene.
-    /// </summary>
     private IEnumerator ShowVictory()
     {
         yield return new WaitForSeconds(1.5f);
@@ -462,41 +462,81 @@ public class ChallengeGameManager : MonoBehaviour
         if (currentPOI != null)
             currentPOI.isChallengeCompleted = true;
 
-        Debug.Log("[Challenge] Victory!");
+        Debug.Log("[ChallengeGameManager] Victory!");
 
         if (currentPOI != null)
         {
-            Debug.Log("[Challenge] Full narrative: " + currentPOI.fullNarrative);
+            Debug.Log("[ChallengeGameManager] Full narrative: " + currentPOI.fullNarrative);
 
             if (currentPOI.poiBadge != null)
-                Debug.Log("[Challenge] Badge earned: " + currentPOI.poiBadge.name);
+                Debug.Log("[ChallengeGameManager] Badge earned: " + currentPOI.poiBadge.name);
             else
-                Debug.Log("[Challenge] No badge sprite loaded.");
+                Debug.Log("[ChallengeGameManager] No badge sprite loaded.");
         }
 
         if (NavigationManager.Instance != null)
         {
-            NavigationManager.Instance.NavigateTo("Codex");
+            NavigationManager.Instance.NavigateTo("CodexUIToolkit");
         }
         else
         {
-            Debug.LogError("[Challenge] NavigationManager is missing.");
+            Debug.LogError("[ChallengeGameManager] NavigationManager is missing.");
         }
     }
 
     // ============================================================
-    // BUTTON UTILITIES
+    // UI UTILITIES
     // ============================================================
+    private void HideResult()
+    {
+        if (resultContainer != null)
+            resultContainer.style.display = DisplayStyle.None;
 
-    /// <summary>
-    /// Gets an answer button by normalized key.
-    /// </summary>
-    /// <param name="key">
-    /// Answer key.
-    /// </param>
-    /// <returns>
-    /// Matching button, or null if not found.
-    /// </returns>
+        if (resultLabel != null)
+            resultLabel.text = "";
+    }
+
+    private void SetAnswerStyle(VisualElement container, Button button, Color bgColor, Color textColor)
+    {
+        if (container != null)
+            container.style.backgroundColor = bgColor;
+
+        if (button != null)
+        {
+            button.style.color = textColor;
+            button.style.backgroundColor = bgColor;
+        }
+    }
+
+    private void ResetButtonColors()
+    {
+        for (int i = 0; i < answerContainers.Count && i < answerButtons.Count; i++)
+        {
+            SetAnswerStyle(
+                answerContainers[i],
+                answerButtons[i],
+                normalColor,
+                normalTextColor
+            );
+        }
+    }
+
+    private void SetAnswerButtonsInteractable(bool interactable)
+    {
+        foreach (var button in answerButtons)
+        {
+            if (button != null)
+            {
+                button.SetEnabled(interactable);
+                if (interactable)
+                {
+                    button.style.backgroundColor = normalColor;
+                    button.style.color = normalTextColor;
+                }
+            }
+        }
+    }
+
     private Button GetButtonForKey(string key)
     {
         key = NormalizeAnswerKey(key);
@@ -507,15 +547,6 @@ public class ChallengeGameManager : MonoBehaviour
         return null;
     }
 
-    /// <summary>
-    /// Normalizes an answer key for comparison.
-    /// </summary>
-    /// <param name="key">
-    /// Raw answer key.
-    /// </param>
-    /// <returns>
-    /// Normalized answer key.
-    /// </returns>
     private string NormalizeAnswerKey(string key)
     {
         if (string.IsNullOrWhiteSpace(key))
@@ -527,47 +558,73 @@ public class ChallengeGameManager : MonoBehaviour
             .ToUpperInvariant();
     }
 
-    /// <summary>
-    /// Resets all generated answer button colors to the normal color.
-    /// </summary>
-    private void ResetButtonColors()
+    private void ShowFallback()
     {
-        foreach (Button button in answerButtons)
-            SetButtonColor(button, normalColor);
+        if (questionText != null)
+            questionText.text = "Challenge data not available.";
+
+        if (hintButton != null)
+            hintButton.SetEnabled(false);
+
+        if (resultContainer != null)
+            resultContainer.style.display = DisplayStyle.None;
     }
 
-    /// <summary>
-    /// Sets all generated answer buttons interactable or non-interactable.
-    /// </summary>
-    /// <param name="interactable">
-    /// Whether the buttons should be interactable.
-    /// </param>
-    private void SetAnswerButtonsInteractable(bool interactable)
+    private void UpdateProgressLabel()
     {
-        foreach (Button button in answerButtons)
-        {
-            if (button != null)
-                button.interactable = interactable;
-        }
-    }
-
-    /// <summary>
-    /// Changes the visual color of a button image.
-    /// </summary>
-    /// <param name="button">
-    /// Button to update.
-    /// </param>
-    /// <param name="color">
-    /// Color to assign.
-    /// </param>
-    private void SetButtonColor(Button button, Color color)
-    {
-        if (button == null)
+        if (progressLabel == null)
             return;
 
-        Image image = button.GetComponent<Image>();
+        progressLabel.text = $"Attempts: {wrongAttempts}/{MAX_ATTEMPTS}";
+        progressLabel.style.color = correctColor;
+    }
 
-        if (image != null)
-            image.color = color;
+    private void CompleteChallenge(bool solvedByPlayer)
+    {
+        if (currentPOI == null)
+        {
+            Debug.LogError(
+                "[ChallengeGameManager] Cannot complete a null POI."
+            );
+
+            return;
+        }
+
+        if (DataManager.Instance != null)
+            DataManager.Instance.MarkCurrentPOICompleted();
+
+        if (currentPOI != null)
+            currentPOI.isChallengeCompleted = true;
+
+        Debug.Log($"[ChallengeGameManager] Challenge completed. Solved: {solvedByPlayer}");
+
+        if (backButton != null)
+            backButton.SetEnabled(false);
+
+        StartCoroutine(NavigateToBadgePage());
+    }
+
+    private IEnumerator NavigateToBadgePage()
+    {
+        yield return new WaitForSeconds(0.5f);
+
+        if (NavigationManager.Instance == null)
+        {
+            Debug.LogError(
+                "[ChallengeGameManager] NavigationManager is missing."
+            );
+            yield break;
+        }
+
+        NavigationManager.Instance.NavigateTo("BadgePageUIToolkit");
+    }
+
+    private void ShowResult(string message)
+    {
+        if (resultContainer != null)
+            resultContainer.style.display = DisplayStyle.Flex;
+
+        if (resultLabel != null)
+            resultLabel.text = message ?? "";
     }
 }

@@ -411,29 +411,56 @@ namespace Theoden.Editor.POIDefinitionClasses
             }
 
             //--------------------------------------------------------
-            //              USING THE PROJECT CONTEXT TO RESOLVE PATHS
-            //---------------------------------------------------------
-            string poiRootFolderPath = TheodenProjectPaths.GetPoiRootFolder(
-                _projectContext.poisFolderPath,
-                poiId
-            );
+            // PROJECT IDENTITY AND EXPORT PATHS
+            //--------------------------------------------------------
 
-            string jsonExportFolderPath = TheodenProjectPaths.GetPoiDataFolder(
-                _projectContext.poisFolderPath,
-                poiId
-            );
+            string projectId =
+                _projectContext.projectId;
 
-            if (string.IsNullOrWhiteSpace(poiRootFolderPath) ||
-                !poiRootFolderPath.StartsWith("Assets"))
+            string projectRootFolderPath =
+                _projectContext.projectFolderPath;
+
+            string jsonExportFolderPath =
+                TheodenProjectPaths.GetPoiDataFolder(
+                    _projectContext.poisFolderPath,
+                    poiId
+                );
+
+            if (string.IsNullOrWhiteSpace(projectId))
             {
-                Debug.LogError($"Invalid POI root folder: {poiRootFolderPath}");
+                Debug.LogError(
+                    "The selected THEODEN project has no valid project id."
+                );
+
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(projectRootFolderPath) ||
+                !projectRootFolderPath.Equals(
+                    "Assets",
+                    StringComparison.Ordinal) &&
+                !projectRootFolderPath.StartsWith(
+                    "Assets/",
+                    StringComparison.Ordinal))
+            {
+                Debug.LogError(
+                    "Invalid THEODEN project root folder: " +
+                    projectRootFolderPath
+                );
+
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(jsonExportFolderPath) ||
-                !jsonExportFolderPath.StartsWith("Assets"))
+                !jsonExportFolderPath.StartsWith(
+                    "Assets",
+                    StringComparison.Ordinal))
             {
-                Debug.LogError($"Invalid POI export folder: {jsonExportFolderPath}");
+                Debug.LogError(
+                    "Invalid POI export folder: " +
+                    jsonExportFolderPath
+                );
+
                 return;
             }
 
@@ -444,30 +471,50 @@ namespace Theoden.Editor.POIDefinitionClasses
                 "0.1.0"
             );
 
-            //--------------------------------------------------------------
-            //          USING NAMING CONVENTION TO ASSIGN THE CORRECT NAME
-            //---------------------------------------------------------------
-            string fileName = TheodenFileNaming.GetPoiJsonFileName(poiId, language);
+            //--------------------------------------------------------
+            // JSON FILE NAME
+            //--------------------------------------------------------
 
-            Debug.Log($"Exporting POI '{poiId}' as {fileName}");
-            Debug.Log($"POI root folder: {poiRootFolderPath}");
-            Debug.Log($"JSON export folder: {jsonExportFolderPath}");
+            string fileName =
+                TheodenFileNaming.GetPoiJsonFileName(
+                    poiId,
+                    language
+                );
+
+            Debug.Log(
+                $"Exporting POI '{poiId}' as {fileName}"
+            );
+
+            Debug.Log(
+                $"THEODEN project: {projectId}"
+            );
+
+            Debug.Log(
+                $"Project root folder: {projectRootFolderPath}"
+            );
+
+            Debug.Log(
+                $"JSON export folder: {jsonExportFolderPath}"
+            );
 
             if (!PoiExportService.ExportPoi(
                     template,
+                    projectId,
                     poiId,
                     language,
-                    poiRootFolderPath,
+                    projectRootFolderPath,
                     jsonExportFolderPath,
                     fileName,
-                    out var error))
+                    out string error))
             {
                 Debug.LogError(error);
+
                 EditorUtility.DisplayDialog(
                     "Export Failed",
                     error,
                     "OK"
                 );
+
                 return;
             }
 

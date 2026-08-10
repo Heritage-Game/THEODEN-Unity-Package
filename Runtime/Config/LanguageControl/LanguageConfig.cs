@@ -17,7 +17,13 @@ public class LanguageConfig : ScriptableObject
 public class LanguageEntry
 {
     public LanguageList language;
-    public string displayedName;
+    //public string displayedName;
+    public string displayedName;        // "English", "Italiano"
+    public Sprite flagSprite;          // Bandiera
+    // oppure
+    public string displayName;         // "English"
+    public string code;               // "ENG"
+    public Sprite flag;
     //optional to add eventually
     //public Sprite flag;
 }

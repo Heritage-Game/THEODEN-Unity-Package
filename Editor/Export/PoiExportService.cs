@@ -83,9 +83,10 @@ namespace Theoden.Editor.Export
         /// </remarks>
         public static bool ExportPoi(
             LevelTemplateBase template,
+            string projectId,
             string poiId,
             LanguageList language,
-            string poiRootFolderPath,
+            string projectRootFolderPath,
             string jsonExportFolderPath,
             string fileName,
             out string error)
@@ -98,14 +99,35 @@ namespace Theoden.Editor.Export
                 return false;
             }
 
-            poiRootFolderPath = NormalizeUnityPath(poiRootFolderPath);
-            jsonExportFolderPath = NormalizeUnityPath(jsonExportFolderPath);
+            if (string.IsNullOrWhiteSpace(projectId))
+            {
+                error = "THEODEN project id is missing.";
+                return false;
+            }
 
-            if (!PoiAddressablesSetupService.SetupAddressablesForTemplate(
-                    template,
-                    poiId,
-                    poiRootFolderPath,
-                    out error))
+            if (string.IsNullOrWhiteSpace(poiId))
+            {
+                error = "POI id is missing.";
+                return false;
+            }
+
+            projectRootFolderPath =
+                NormalizeUnityPath(projectRootFolderPath);
+
+            jsonExportFolderPath =
+                NormalizeUnityPath(jsonExportFolderPath);
+
+            /*
+             * Media must be registered before serialization because
+             * AddressableAssetJsonConverter reads their assigned addresses.
+             */
+            if (!PoiAddressablesSetupService
+                    .SetupAddressablesForTemplate(
+                        template,
+                        projectId,
+                        poiId,
+                        projectRootFolderPath,
+                        out error))
             {
                 return false;
             }
@@ -122,6 +144,7 @@ namespace Theoden.Editor.Export
 
             if (!SetupJsonAsAddressable(
                     jsonAssetPath,
+                    projectId,
                     poiId,
                     language,
                     out error))
@@ -135,6 +158,29 @@ namespace Theoden.Editor.Export
             return true;
         }
 
+        /// <summary>
+        /// Temporary compatibility overload for the old editor window.
+        /// Remove it after LevelDefinitionBuilderWindow has been migrated.
+        /// </summary>
+        [Obsolete(
+            "Use ExportPoi with projectId and projectRootFolderPath."
+        )]
+        public static bool ExportPoi(
+            LevelTemplateBase template,
+            string poiId,
+            LanguageList language,
+            string poiRootFolderPath,
+            string jsonExportFolderPath,
+            string fileName,
+            out string error)
+        {
+            error =
+                "LevelDefinitionBuilderWindow still uses the legacy " +
+                "POI export method. Update the window before exporting.";
+
+            return false;
+        }
+        
         /// <summary>
         /// Serializes the template and writes the resulting JSON file to disk.
         /// </summary>
@@ -253,13 +299,15 @@ namespace Theoden.Editor.Export
         /// </remarks>
         private static bool SetupJsonAsAddressable(
             string jsonAssetPath,
+            string projectId,
             string poiId,
             LanguageList language,
             out string error)
         {
             error = null;
 
-            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            AddressableAssetSettings settings =
+                AddressableAssetSettingsDefaultObject.Settings;
 
             if (settings == null)
             {
@@ -267,29 +315,62 @@ namespace Theoden.Editor.Export
                 return false;
             }
 
-            string groupName = TheodenAddressablesNaming.GetPoiGroupName(poiId);
-            string label = TheodenAddressablesNaming.GetPoiLabel(poiId);
+            string groupName =
+                TheodenAddressablesNaming.GetPoiGroupName(
+                    projectId,
+                    poiId
+                );
 
-            AddressableAssetGroup group = settings.FindGroup(groupName);
+            string label =
+                TheodenAddressablesNaming.GetPoiLabel(
+                    projectId,
+                    poiId
+                );
+
+            AddressableAssetGroup group =
+                settings.FindGroup(groupName);
 
             if (group == null)
             {
-                error = $"Addressables group '{groupName}' not found.";
+                error =
+                    $"Addressables group '{groupName}' not found.";
+
                 return false;
             }
 
-            string guid = AssetDatabase.AssetPathToGUID(jsonAssetPath);
+            string guid =
+                AssetDatabase.AssetPathToGUID(jsonAssetPath);
 
             if (string.IsNullOrWhiteSpace(guid))
             {
-                error = $"Could not find GUID for exported JSON: {jsonAssetPath}";
+                error =
+                    "Could not find GUID for exported JSON: " +
+                    jsonAssetPath;
+
                 return false;
             }
 
-            AddressableAssetEntry entry = settings.CreateOrMoveEntry(guid, group);
+            AddressableAssetEntry entry =
+                settings.CreateOrMoveEntry(
+                    guid,
+                    group
+                );
 
-            entry.address = TheodenAddressablesNaming.GetPoiJsonAddress(poiId, language);
-            entry.SetLabel(label, true, true);
+            PoiAddressablesSetupService
+                .RemoveOldTheodenLabels(entry);
+
+            entry.address =
+                TheodenAddressablesNaming.GetPoiJsonAddress(
+                    projectId,
+                    poiId,
+                    language
+                );
+
+            entry.SetLabel(
+                label,
+                true,
+                true
+            );
 
             settings.SetDirty(
                 AddressableAssetSettings.ModificationEvent.EntryMoved,

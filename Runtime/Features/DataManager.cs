@@ -165,6 +165,8 @@ public class DataManager : MonoBehaviour
                 Debug.LogError("[DataManager] Codex menu could not be loaded.");
                 return;
             }
+            
+            SynchronizeCodexStatesWithPlayerProgress();
 
             IsDataLoaded = true;
 
@@ -385,6 +387,8 @@ public class DataManager : MonoBehaviour
                 return;
             }
 
+            // Verify the state of the POI - if it's already completed or not
+            PlayerProgressService.ApplyCompletionState(SelectedPOI);
             await POIAssetResolver.ResolveAssetsAsync(SelectedPOI);
 
             IsPOILoaded = true;
@@ -419,49 +423,34 @@ public class DataManager : MonoBehaviour
     // =====================================================
 
     /// <summary>
-    /// Marks the currently selected POI as completed and unlocks the next codex item.
+    /// Refreshes Codex states after the current POI completion
+    /// has been saved by PlayerProgressService.
     /// </summary>
-    /// <remarks>
-    /// The completed item becomes <see cref="CodexItemState.Unlocked"/>.
-    /// The next item, if it exists, becomes <see cref="CodexItemState.Directions"/>.
-    /// </remarks>
     public void MarkCurrentPOICompleted()
     {
-        if (CodexMenu == null || CodexMenu.items == null)
-        {
-            Debug.LogError("[DataManager] Cannot complete POI. CodexMenu is null.");
-            return;
-        }
-
         if (SelectedCodexItem == null)
         {
-            Debug.LogError("[DataManager] Cannot complete POI. SelectedCodexItem is null.");
+            Debug.LogError(
+                "[DataManager] Cannot refresh Codex progress. " +
+                "SelectedCodexItem is null."
+            );
+
             return;
         }
 
-        int currentIndex = CodexMenu.items.IndexOf(SelectedCodexItem);
-
-        if (currentIndex < 0)
+        if (!PlayerProgressService.IsPoiCompleted(
+                SelectedCodexItem.poiId))
         {
-            Debug.LogError("[DataManager] SelectedCodexItem was not found in CodexMenu.");
+            Debug.LogWarning(
+                "[DataManager] The selected POI has not been saved " +
+                "as completed yet: " +
+                SelectedCodexItem.poiId
+            );
+
             return;
         }
 
-        CodexMenu.items[currentIndex].state = CodexItemState.Unlocked;
-
-        int nextIndex = currentIndex + 1;
-
-        if (nextIndex < CodexMenu.items.Count)
-        {
-            CodexMenu.items[nextIndex].state = CodexItemState.Directions;
-
-            Debug.Log("[DataManager] Next level is now available in Directions mode: "
-                      + CodexMenu.items[nextIndex].levelTitle);
-        }
-        else
-        {
-            Debug.Log("[DataManager] Last POI completed.");
-        }
+        SynchronizeCodexStatesWithPlayerProgress();
     }
 
     // =====================================================
@@ -672,5 +661,63 @@ public class DataManager : MonoBehaviour
                 break;
             }
         }
+    }
+    
+    /// <summary>
+    /// Reconstructs all Codex item states using the player's
+    /// persistent progress.
+    /// </summary>
+    public void SynchronizeCodexStatesWithPlayerProgress()
+    {
+        if (CodexMenu == null || CodexMenu.items == null)
+        {
+            Debug.LogError(
+                "[DataManager] Cannot synchronize Codex states. " +
+                "CodexMenu is null."
+            );
+
+            return;
+        }
+
+        bool directionsItemAssigned = false;
+
+        foreach (CodexItemDefinition item in CodexMenu.items)
+        {
+            if (item == null)
+                continue;
+
+            if (string.IsNullOrWhiteSpace(item.poiId))
+            {
+                item.state = CodexItemState.Locked;
+
+                Debug.LogWarning(
+                    "[DataManager] Codex item has no valid POI ID: " +
+                    item.levelTitle
+                );
+
+                continue;
+            }
+
+            if (PlayerProgressService.IsPoiCompleted(item.poiId))
+            {
+                item.state = CodexItemState.Unlocked;
+                continue;
+            }
+
+            if (!directionsItemAssigned)
+            {
+                item.state = CodexItemState.Directions;
+                directionsItemAssigned = true;
+            }
+            else
+            {
+                item.state = CodexItemState.Locked;
+            }
+        }
+
+        Debug.Log(
+            "[DataManager] Codex states synchronized with " +
+            "persistent player progress."
+        );
     }
 }

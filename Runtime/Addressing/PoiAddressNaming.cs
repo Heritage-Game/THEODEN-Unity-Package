@@ -1,8 +1,3 @@
-
-
-
-
-
 namespace Addressing
 {
     /// <summary>

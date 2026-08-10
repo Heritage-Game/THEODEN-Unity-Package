@@ -1,35 +1,45 @@
 using System.Collections;
+using Core.Models;
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
+using UnityEngine.UI; //for rawimage
+using UnityEngine.UIElements;
 using ZXing;
 using ZXing.Common;
 
 /// <summary>
-/// In pratica nella nuova logica la pipeline è:
+/// Runtime QR loading flow:
 /// <code>
-/// QR legge ad es: roman_empire_ENG
-///    ↓
-///check che sia coerente con DataManager.Instance.SelectedPOI
-///    ↓
-///DataManager.LoadPOIFromQr("roman_empire_ENG")
-///    ↓
-///DataManager carica JSON POI + immagini
-///    ↓
-///NavigateTo("CodexInitial")
+/// QR reads: roman_empire
+///     ↓
+/// Checks against DataManager.Instance.SelectedCodexItem.poiId
+///     ↓
+/// DataManager.LoadPOIFromQr("roman_empire")
+///     ↓
+/// DataManager loads POI JSON and media assets
+///     ↓
+/// NavigateTo("CodexInitialUIToolkit")
 /// </code>
 /// </summary>
 public class QRScannerView : MonoBehaviour
 {
-    [Header("UI References")]
-    [SerializeField] private RawImage cameraBackground;
-    [SerializeField] private TextMeshProUGUI statusText;
-    [SerializeField] private Button backButton;
-    [SerializeField] private RectTransform background;
+    // ============================================================
+    // UI REFERENCES
+    // ============================================================
+    [Header("UI Toolkit References")] [SerializeField]
+    private UIDocument uiDocument;
 
-    [Header("Demo")]
-    [SerializeField] private Button debugLoadButton;
+    [Header("Camera Overlay (Canvas)")] [SerializeField]
+    private RawImage cameraRawImage;
 
+    private VisualElement root;
+    private VisualElement cameraContainer;
+    private VisualElement cameraBackground;
+    private Label statusText;
+    private UnityEngine.UIElements.Button backButton;
+
+    // ============================================================
+    // CAMERA
+    // ============================================================
     private WebCamTexture webCamTexture;
     private BarcodeReaderGeneric barcodeReader;
 
@@ -39,8 +49,19 @@ public class QRScannerView : MonoBehaviour
     private float scanInterval = 0.5f;
     private float scanTimer = 0f;
 
-    private void Start()
+    // ============================================================
+    // UNITY LIFECYCLE
+    // ============================================================
+    private void OnEnable()
     {
+        if (uiDocument == null)
+        {
+            Debug.LogError("[QRScannerView] UIDocument not assigned.");
+            return;
+        }
+
+        root = uiDocument.rootVisualElement;
+        BindUIElements();
         SetupButtons();
 
         barcodeReader = new BarcodeReaderGeneric
@@ -56,19 +77,52 @@ public class QRScannerView : MonoBehaviour
         StartCoroutine(InitCamera());
     }
 
-    private void SetupButtons()
+    private void OnDisable()
     {
-        if (backButton != null)
-        {
-            backButton.onClick.RemoveAllListeners();
-            backButton.onClick.AddListener(OnBackClicked);
-        }
+        StopCamera();
 
-        if (debugLoadButton != null)
+        if (cameraRawImage != null)
+            cameraRawImage.gameObject.SetActive(false);
+
+        if (backButton != null)
+            backButton.clicked -= OnBackClicked;
+    }
+
+    private void Update()
+    {
+        if (!isScanning || isProcessingQr || webCamTexture == null || !webCamTexture.isPlaying)
+            return;
+
+        scanTimer += Time.deltaTime;
+
+        if (scanTimer >= scanInterval)
         {
-            debugLoadButton.onClick.RemoveAllListeners();
-            debugLoadButton.onClick.AddListener(DebugLoadSelectedPOI);
+            scanTimer = 0f;
+            ScanQRCode();
         }
+    }
+
+    // ============================================================
+    // UI BINDING
+    // ============================================================
+    private void BindUIElements()
+    {
+        cameraContainer = root.Q<VisualElement>("camera_container");
+        cameraBackground = root.Q<VisualElement>("camera_background");
+        statusText = root.Q<Label>("status_text");
+        backButton = root.Q<UnityEngine.UIElements.Button>("back_button");
+
+        if (cameraContainer == null)
+            Debug.LogWarning("[QRScannerView] 'camera_container' not found in UXML.");
+
+        if (cameraBackground == null)
+            Debug.LogWarning("[QRScannerView] 'camera_background' not found in UXML.");
+
+        if (statusText == null)
+            Debug.LogWarning("[QRScannerView] 'status_text' not found in UXML.");
+
+        if (backButton == null)
+            Debug.LogWarning("[QRScannerView] 'back_button' not found in UXML.");
     }
 
     // ============================================================
@@ -90,6 +144,18 @@ public class QRScannerView : MonoBehaviour
         StartCamera();
     }
 
+    // ============================================================
+    // SETUP
+    // ============================================================
+    private void SetupButtons()
+    {
+        if (backButton != null)
+        {
+            backButton.clicked -= OnBackClicked;
+            backButton.clicked += OnBackClicked;
+        }
+    }
+
     private void StartCamera()
     {
         WebCamDevice[] devices = WebCamTexture.devices;
@@ -97,7 +163,7 @@ public class QRScannerView : MonoBehaviour
         if (devices == null || devices.Length == 0)
         {
             SetStatus("No camera found!", Color.red);
-            Debug.LogError("[QRScanner] No camera found.");
+            Debug.LogError("[QRScannerView] No camera found.");
             return;
         }
 
@@ -117,8 +183,15 @@ public class QRScannerView : MonoBehaviour
 
         webCamTexture = new WebCamTexture(cameraName, 1280, 720, 30);
 
-        if (cameraBackground != null)
-            cameraBackground.texture = webCamTexture;
+        if (cameraRawImage != null)
+        {
+            cameraRawImage.texture = webCamTexture;
+            cameraRawImage.gameObject.SetActive(true);
+        }
+        else
+        {
+            Debug.LogError("[QRScannerView] cameraRawImage not assigned!");
+        }
 
         webCamTexture.Play();
 
@@ -127,40 +200,168 @@ public class QRScannerView : MonoBehaviour
 
     private IEnumerator WaitForCameraReady()
     {
-        while (webCamTexture != null && webCamTexture.width < 100)
-            yield return null;
+        while (webCamTexture != null && webCamTexture.width < 100) yield return null;
 
-        FixCameraRatio();
-        FixCameraRotation();
+        if (cameraRawImage != null)
+        {
+            FixCameraRatioRawImage();
+            FixCameraRotationRawImage();
+        }
 
-        SetStatus("Scanning QR Code...", Color.white);
+        SetStatus("Scanning QR Code...", Color.black);
         isScanning = true;
     }
 
-    //Used to set the camera ratio at maximum dimentions without stretching the image
-    private void FixCameraRatio()
+    private void FixCameraRatioRawImage()
     {
-        RectTransform rt = cameraBackground.rectTransform;
+        if (cameraRawImage == null || webCamTexture == null)
+            return;
 
-        float parentRatio = background.rect.width / background.rect.height;
+        RectTransform rt = cameraRawImage.rectTransform;
+        RectTransform parentRt = cameraRawImage.transform.parent as RectTransform;
+
+        if (parentRt == null) return;
+
+        float parentRatio = parentRt.rect.width / parentRt.rect.height;
         float webcamRatio = (float)webCamTexture.width / webCamTexture.height;
 
         if (webcamRatio > parentRatio)
         {
-            // limit by width
-
             if (webCamTexture.videoRotationAngle == 0)
-                rt.sizeDelta = new Vector2(background.rect.width, background.rect.width / webcamRatio);
+                rt.sizeDelta = new Vector2(parentRt.rect.width, parentRt.rect.width / webcamRatio);
             else
-                rt.sizeDelta = new Vector2(background.rect.width * webcamRatio, background.rect.width);
+                rt.sizeDelta = new Vector2(parentRt.rect.width * webcamRatio, parentRt.rect.width);
         }
         else
         {
-            // limit by height
             if (webCamTexture.videoRotationAngle == 0)
-                rt.sizeDelta = new Vector2(background.rect.height * webcamRatio, background.rect.height);
+                rt.sizeDelta = new Vector2(parentRt.rect.height * webcamRatio, parentRt.rect.height);
             else
-                rt.sizeDelta = new Vector2(background.rect.height, background.rect.height / webcamRatio);
+                rt.sizeDelta = new Vector2(parentRt.rect.height, parentRt.rect.height / webcamRatio);
+        }
+    }
+
+    /// <summary>
+    /// Returns the POI ID associated with the selected Codex item.
+    /// </summary>
+    private string GetExpectedPoiIdFromSelectedItem()
+    {
+        CodexItemDefinition selectedItem =
+            DataManager.Instance.SelectedCodexItem;
+
+        if (selectedItem == null ||
+            string.IsNullOrWhiteSpace(selectedItem.poiId))
+        {
+            return string.Empty;
+        }
+
+        return selectedItem.poiId.Trim();
+    }
+
+    private void FixCameraRotationRawImage()
+    {
+        if (cameraRawImage == null || webCamTexture == null)
+            return;
+
+        int rotation = -webCamTexture.videoRotationAngle;
+        cameraRawImage.rectTransform.localEulerAngles = new Vector3(0, 0, rotation);
+
+        cameraRawImage.rectTransform.localScale = webCamTexture.videoVerticallyMirrored
+            ? new Vector3(1, -1, 1)
+            : Vector3.one;
+    }
+
+    // ============================================================
+    // DEMO FALLBACK
+    // ============================================================
+
+    private void DebugLoadSelectedPOI()
+    {
+        if (isProcessingQr)
+            return;
+
+        string expectedPoiId = GetExpectedPoiIdFromSelectedItem();
+
+        if (string.IsNullOrEmpty(expectedPoiId))
+        {
+            Debug.LogError("[QRScanner] Cannot debug-load POI. Expected QR code is empty.");
+            SetStatus("Cannot load demo POI.", Color.red);
+            return;
+        }
+
+        Debug.Log("[QRScanner] Debug loading QR: " + expectedPoiId);
+
+        isScanning = false;
+        isProcessingQr = true;
+
+        StartCoroutine(ValidateAndLoadQRCode(expectedPoiId));
+    }
+
+    private void FixCameraRatio()
+    {
+        if (cameraBackground == null || webCamTexture == null)
+            return;
+
+        float parentWidth = cameraContainer != null ? cameraContainer.resolvedStyle.width : Screen.width;
+        float parentHeight = cameraContainer != null ? cameraContainer.resolvedStyle.height : Screen.height;
+
+        if (parentWidth <= 0 || parentHeight <= 0)
+        {
+            parentWidth = Screen.width;
+            parentHeight = Screen.height;
+        }
+
+        float parentRatio = parentWidth / parentHeight;
+        float webcamRatio = (float)webCamTexture.width / webCamTexture.height;
+
+        if (cameraBackground != null)
+        {
+            if (webcamRatio > parentRatio)
+            {
+                // limit by width
+                cameraBackground.style.width = parentWidth;
+                cameraBackground.style.height = parentWidth / webcamRatio;
+            }
+            else
+            {
+                // limit by height
+                cameraBackground.style.width = parentHeight * webcamRatio;
+                cameraBackground.style.height = parentHeight;
+            }
+        }
+    }
+
+    // ============================================================
+    // UI UTILITIES
+    // ============================================================
+    private void OnBackClicked()
+    {
+        ChallengeSessionService.CancelSession();
+
+        StopCamera();
+
+        if (NavigationManager.Instance != null)
+            NavigationManager.Instance.GoBack();
+    }
+
+    private void SetStatus(string message, Color color)
+    {
+        if (statusText != null)
+        {
+            statusText.text = message;
+            statusText.style.color = color;
+        }
+    }
+
+    private void StopCamera()
+    {
+        if (webCamTexture != null && webCamTexture.isPlaying)
+            webCamTexture.Stop();
+
+        if (cameraRawImage != null)
+        {
+            cameraRawImage.texture = null;
+            cameraRawImage.gameObject.SetActive(false);
         }
     }
 
@@ -170,31 +371,30 @@ public class QRScannerView : MonoBehaviour
             return;
 
         int rotation = -webCamTexture.videoRotationAngle;
-        cameraBackground.rectTransform.localEulerAngles = new Vector3(0, 0, rotation);
+        cameraBackground.style.rotate = new Rotate(Angle.Degrees(rotation));
 
-        cameraBackground.rectTransform.localScale = webCamTexture.videoVerticallyMirrored
-            ? new Vector3(1, -1, 1)
-            : Vector3.one;
+        if (webCamTexture.videoVerticallyMirrored)
+        {
+            cameraBackground.style.scale = new Scale(new Vector3(1, -1, 1));
+        }
+        else
+        {
+            cameraBackground.style.scale = new Scale(Vector3.one);
+        }
+    }
+
+    // ============================================================
+    // CAMERA FRAME UPDATE
+    // ============================================================
+    private void UpdateCameraFrame()
+    {
+        if (cameraBackground == null || webCamTexture == null || !webCamTexture.isPlaying)
+            return;
     }
 
     // ============================================================
     // SCANNING LOOP
     // ============================================================
-
-    private void Update()
-    {
-        if (!isScanning || isProcessingQr || webCamTexture == null || !webCamTexture.isPlaying)
-            return;
-
-        scanTimer += Time.deltaTime;
-
-        if (scanTimer >= scanInterval)
-        {
-            scanTimer = 0f;
-            ScanQRCode();
-        }
-    }
-
     private void ScanQRCode()
     {
         try
@@ -227,21 +427,20 @@ public class QRScannerView : MonoBehaviour
 
                 string scannedCode = result.Text.Trim();
 
-                Debug.Log("[QRScanner] QR Code read: " + scannedCode);
+                Debug.Log("[QRScannerView] QR Code read: " + scannedCode);
 
                 StartCoroutine(ValidateAndLoadQRCode(scannedCode));
             }
         }
         catch (System.Exception ex)
         {
-            Debug.LogWarning("[QRScanner] QR reading error: " + ex.Message);
+            Debug.LogWarning("[QRScannerView] QR reading error: " + ex.Message);
         }
     }
 
     // ============================================================
     // VALIDATION + POI LOADING
     // ============================================================
-
     private IEnumerator ValidateAndLoadQRCode(string scannedCode)
     {
         if (DataManager.Instance == null)
@@ -251,76 +450,162 @@ public class QRScannerView : MonoBehaviour
             yield break;
         }
 
+        // TODO:
+        // This check will need to change if QR scanning can also
+        // be started directly from the Main Menu.
         if (DataManager.Instance.SelectedCodexItem == null)
         {
             SetStatus("No selected level!", Color.red);
-            Debug.LogError("[QRScanner] SelectedCodexItem is null.");
+
+            Debug.LogError(
+                "[QRScanner] SelectedCodexItem is null."
+            );
+
             isProcessingQr = false;
             yield break;
         }
 
-        string expectedQrCode = GetExpectedQrCodeFromSelectedItem();
+        string expectedPoiId =
+            GetExpectedPoiIdFromSelectedItem();
 
-        if (!string.IsNullOrEmpty(expectedQrCode) && scannedCode != expectedQrCode)
+        if (string.IsNullOrWhiteSpace(expectedPoiId))
         {
-            SetStatus("Wrong QR Code!", new Color(0.9f, 0.3f, 0.3f));
+            SetStatus(
+                "Selected POI has no valid ID.",
+                Color.red
+            );
 
-            Debug.LogWarning("[QRScanner] Wrong QR. Expected: " + expectedQrCode + " | Got: " + scannedCode);
+            Debug.LogError(
+                "[QRScanner] SelectedCodexItem has no valid POI ID."
+            );
 
             yield return ResetStatusDelayed();
             yield break;
         }
 
-        SetStatus("Correct QR Code! Loading...", new Color(0.29f, 0.69f, 0.31f));
+        bool isCorrectQrCode = string.Equals(
+            scannedCode,
+            expectedPoiId,
+            System.StringComparison.Ordinal);
+
+        if (!isCorrectQrCode)
+        {
+            SetStatus(
+                "Wrong QR Code!",
+                new Color(0.9f, 0.3f, 0.3f)
+            );
+
+            Debug.LogWarning(
+                "[QRScanner] Wrong QR. Expected: " +
+                expectedPoiId +
+                " | Got: " +
+                scannedCode
+            );
+
+            yield return ResetStatusDelayed();
+            yield break;
+        }
+
+        /*
+         * Start the session only if another matching session
+         * is not already active.
+         *
+         * This prevents the timer from being restarted if the
+         * same QR is processed more than once.
+         */
+        bool hasMatchingActiveSession =
+            ChallengeSessionService.IsActive &&
+            string.Equals(
+                ChallengeSessionService.ActivePoiId,
+                expectedPoiId,
+                System.StringComparison.Ordinal
+            );
+
+        bool sessionReady =
+            hasMatchingActiveSession ||
+            ChallengeSessionService.StartSession(expectedPoiId);
+
+        if (!sessionReady)
+        {
+            SetStatus(
+                "Could not start challenge session.",
+                Color.red
+            );
+
+            Debug.LogError(
+                "[QRScanner] Could not start session for POI: " +
+                scannedCode
+            );
+
+            isProcessingQr = false;
+            isScanning = true;
+            yield break;
+        }
+
+        SetStatus(
+            "Correct QR Code! Loading...",
+            new Color(0.29f, 0.69f, 0.31f)
+        );
 
 #if UNITY_ANDROID || UNITY_IOS
         Handheld.Vibrate();
 #endif
 
-        StopCamera();
+        if (backButton != null)
+            backButton.SetEnabled(false);
 
-        yield return DataManager.Instance.LoadPOIFromQr(scannedCode);
+
+        yield return DataManager.Instance.LoadPOIFromQr(
+            expectedPoiId
+        );
 
         if (DataManager.Instance.SelectedPOI == null)
         {
-            SetStatus("POI data could not be loaded.", Color.red);
-            Debug.LogError("[QRScanner] SelectedPOI is null after loading QR: " + scannedCode);
+            ChallengeSessionService.CancelSession();
+
+            SetStatus(
+                "POI data could not be loaded.",
+                Color.red
+            );
+
+            Debug.LogError(
+                "[QRScanner] SelectedPOI is null after loading QR: " +
+                scannedCode
+            );
+
+            if (backButton != null)
+                backButton.SetEnabled(true);
+
+            yield return ResetStatusDelayed();
+            yield break;
+        }
+
+        // POI successfully loaded 
+        StopCamera();
+
+        yield return new WaitForSeconds(0.5f);
+
+        if (NavigationManager.Instance == null)
+        {
+            ChallengeSessionService.CancelSession();
+
+            SetStatus(
+                "NavigationManager missing!",
+                Color.red
+            );
+
+            if (backButton != null)
+                backButton.SetEnabled(true);
 
             isProcessingQr = false;
             yield break;
         }
 
-        yield return new WaitForSeconds(0.5f);
-
-        NavigationManager.Instance.NavigateTo("CodexInitial");
+        NavigationManager.Instance.NavigateTo(
+            "CodexInitialUIToolkit"
+        );
     }
 
-    private string GetExpectedQrCodeFromSelectedItem()
-    {
-        var item = DataManager.Instance.SelectedCodexItem;
-
-        if (item == null || string.IsNullOrEmpty(item.target))
-            return "";
-
-        // Example:
-        // roman_empire_directions_ENG
-        // becomes:
-        // roman_empire
-
-        string expected = item.target.Trim();
-
-        expected = expected.Replace(".json", "");
-
-        // Remove language suffix by removing everything after "_directions"
-        int directionsIndex = expected.IndexOf("_directions");
-
-        if (directionsIndex >= 0)
-        {
-            expected = expected.Substring(0, directionsIndex);
-        }
-
-        return expected.Trim();
-    }
 
     private IEnumerator ResetStatusDelayed()
     {
@@ -330,69 +615,5 @@ public class QRScannerView : MonoBehaviour
 
         isProcessingQr = false;
         isScanning = true;
-    }
-
-    // ============================================================
-    // DEMO FALLBACK
-    // ============================================================
-
-    private void DebugLoadSelectedPOI()
-    {
-        if (isProcessingQr)
-            return;
-
-        string expectedQrCode = GetExpectedQrCodeFromSelectedItem();
-
-        if (string.IsNullOrEmpty(expectedQrCode))
-        {
-            Debug.LogError("[QRScanner] Cannot debug-load POI. Expected QR code is empty.");
-            SetStatus("Cannot load demo POI.", Color.red);
-            return;
-        }
-
-        Debug.Log("[QRScanner] Debug loading QR: " + expectedQrCode);
-
-        isScanning = false;
-        isProcessingQr = true;
-
-        StartCoroutine(ValidateAndLoadQRCode(expectedQrCode));
-    }
-
-    // ============================================================
-    // UI
-    // ============================================================
-
-    private void OnBackClicked()
-    {
-        StopCamera();
-
-        if (NavigationManager.Instance != null)
-            NavigationManager.Instance.GoBack();
-    }
-
-    private void SetStatus(string message, Color color)
-    {
-        if (statusText != null)
-        {
-            statusText.text = message;
-            statusText.color = color;
-        }
-    }
-
-    private void StopCamera()
-    {
-        if (webCamTexture != null && webCamTexture.isPlaying)
-            webCamTexture.Stop();
-    }
-
-    private void OnDestroy()
-    {
-        StopCamera();
-
-        if (backButton != null)
-            backButton.onClick.RemoveAllListeners();
-
-        if (debugLoadButton != null)
-            debugLoadButton.onClick.RemoveAllListeners();
     }
 }

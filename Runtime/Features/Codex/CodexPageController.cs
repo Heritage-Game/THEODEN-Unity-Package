@@ -1,7 +1,8 @@
 using System.Collections;
+using System.Collections.Generic;
 using Core.Models;
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.UIElements;
 
 namespace Features.Codex
 {
@@ -10,7 +11,7 @@ namespace Features.Codex
     ///
     /// Responsibilities: Build codex UI, Create item views, Subscribe to view events, Coordinate navigation
     /// and runtime behavior.
-    ///
+    /// 
     /// This class acts as the feature controller between:
     /// <code>
     /// runtime models
@@ -22,58 +23,139 @@ namespace Features.Codex
     /// </summary>
     public class CodexPageController : MonoBehaviour
     {
-        [Header("UI")]
-        [SerializeField] private Transform contentParent;
-        [SerializeField] private CodexItemView codexItemPrefab;
-        [SerializeField] private Button goBackButton;
+        // ============================================================
+        // UI REFERENCES
+        // ============================================================
+        [Header("UI References")]
+        [SerializeField] private UIDocument uiDocument;
 
+        private VisualElement root;
+        private VisualElement contentParent;
+        private Button goBackButton;
+
+        // ============================================================
+        // TEMPLATE
+        // ============================================================
+        [Header("Templates")]
+        [SerializeField] private VisualTreeAsset codexItemTemplate;
+
+        // ============================================================
+        // DESIGN
+        // ============================================================
         [Header("Design")]
         [SerializeField] private Color[] itemColors;
 
+        // ============================================================
+        // RUNTIME STATE
+        // ============================================================
         private CodexModel codexModel;
         private bool isOpeningDetail = false;
+        private readonly List<VisualElement> itemElements = new List<VisualElement>();
 
-        private void Start()
+        // ============================================================
+        // UNITY LIFECYCLE
+        // ============================================================
+        private void OnEnable()
         {
+            if (uiDocument == null)
+            {
+                Debug.LogError("[CodexPageController] UIDocument not assigned.");
+                return;
+            }
+
+            root = uiDocument.rootVisualElement;
+            BindUIElements();
             SetupButtons();
+
+            if (DataManager.Instance == null)
+            {
+                Debug.LogError("[DataManager] DataManager not found in scene. Please add it to the scene.");
+                return;
+            }
+
+            if (codexItemTemplate == null)
+            {
+                Debug.LogError("[CodexPageController] Codex item template is not assigned.");
+                return;
+            }
+
             StartCoroutine(Initialize());
         }
 
+        private void OnDisable()
+        {
+            if (goBackButton != null)
+                goBackButton.clicked -= OnBackClicked;
+
+            ClearContent();
+        }
+
+        // ============================================================
+        // UI BINDING
+        // ============================================================
+        private void BindUIElements()
+        {
+            contentParent = root.Q<VisualElement>("content_parent");
+            goBackButton = root.Q<Button>("back_button");
+
+            if (contentParent == null)
+                Debug.LogWarning("[CodexPageController] 'content_parent' not found in UXML.");
+
+            if (goBackButton == null)
+                Debug.LogWarning("[CodexPageController] 'back_button' not found in UXML.");
+        }
+
+        // ============================================================
+        // SETUP
+        // ============================================================
         private void SetupButtons()
         {
             if (goBackButton != null)
             {
-                goBackButton.onClick.RemoveAllListeners();
-                goBackButton.onClick.AddListener(OnBackClicked);
+                goBackButton.clicked -= OnBackClicked;
+                goBackButton.clicked += OnBackClicked;
             }
         }
 
+        // ============================================================
+        // INITIALIZATION
+        // ============================================================
         private IEnumerator Initialize()
         {
             while (DataManager.Instance == null)
+            {
                 yield return null;
+            }
 
             while (!DataManager.Instance.IsDataLoaded)
-                yield return null;
+            {
+                Debug.Log("[CodexPageController] Waiting for DataManager to load...");
+                yield return null; 
+            }
 
             codexModel = DataManager.Instance.CodexMenu;
 
             if (codexModel == null)
             {
                 Debug.LogError("[CodexPageController] CodexModel is null.");
+                ShowError("Codex data not available.");
                 yield break;
             }
 
             if (codexModel.items == null || codexModel.items.Count == 0)
             {
                 Debug.LogError("[CodexPageController] CodexModel has no items.");
+                ShowError("No items found in Codex.");
                 yield break;
             }
 
-            BuildUI();
+            GenerateButtons();
         }
 
-        private void BuildUI()
+        // ============================================================
+        // UI BUILDING
+        // ============================================================
+        private void GenerateButtons()
         {
             if (contentParent == null)
             {
@@ -81,9 +163,9 @@ namespace Features.Codex
                 return;
             }
 
-            if (codexItemPrefab == null)
+            if (codexItemTemplate == null)
             {
-                Debug.LogError("[CodexPageController] Codex item prefab is not assigned.");
+                Debug.LogError("[CodexPageController] Codex item template is not assigned.");
                 return;
             }
 
@@ -96,38 +178,80 @@ namespace Features.Codex
         }
 
         /// <summary>
-        /// This method creates the items inside the codex menu. Each item is a CodexItemPrefab. The colors of the
-        /// elements inside the menu is given by the list of colors that is listes inside the Codex Manager gameObject
-        /// in the Design section
+        /// Creates a codex item using UI Toolkit template.
         /// </summary>
-        /// <param name="item">The codex item to create </param>
-        /// <param name="index">the position inside the index of the item</param>
+        /// <param name="item">The codex item to create</param>
+        /// <param name="index">The position inside the index of the item</param>
         private void CreateItem(CodexItemDefinition item, int index)
         {
-            CodexItemView view = Instantiate(codexItemPrefab, contentParent);
+            // button template
+            VisualElement itemElement = codexItemTemplate.Instantiate();
+            itemElement.style.marginBottom = 200;
+            Button itemButton = itemElement.Q<Button>("poi_button");
 
-            //fallback color yellow
-            Color assignedColor = Color.yellow; 
-            if (itemColors != null && itemColors.Length > 0)
+            if (itemButton != null)
             {
-                //repeats the colors that are inside the design color list cyclically 
-                assignedColor = itemColors[index % itemColors.Length];
-                assignedColor.a = 1f;
+                itemButton.text = item.levelTitle;
+
+                switch (item.state)
+                {
+                    case CodexItemState.Locked:
+                        itemButton.SetEnabled(false);
+                        itemButton.style.backgroundColor = new Color(0.4667f, 0.4667f, 0.4667f);
+                        break;
+                    case CodexItemState.Directions:
+                        itemButton.text += " >";
+                        break;
+                    case CodexItemState.Unlocked:
+                        itemButton.text += " ✅";
+                        //itemButton.SetEnabled(false);
+                        itemButton.style.backgroundColor = new Color(0.518f, 0.769f, 0.255f);
+                        break;
+                }
+
+                CodexItemDefinition capturedItem = item;
+                itemButton.clicked += () => HandleItemClicked(capturedItem);
             }
 
-            view.Setup(item, assignedColor);
-            view.OnClicked += HandleItemClicked;
+            contentParent.Add(itemElement);
+            itemElements.Add(itemElement);
         }
+
         private void ClearContent()
         {
             if (contentParent == null)
                 return;
 
-            for (int i = contentParent.childCount - 1; i >= 0; i--)
+            foreach (var item in itemElements)
             {
-                Destroy(contentParent.GetChild(i).gameObject);
+                if (item != null && item.parent != null)
+                    item.parent.Remove(item);
+            }
+
+            itemElements.Clear();
+        }
+
+        // ============================================================
+        // UI UTILITIES
+        // ============================================================
+        private void ShowError(string message)
+        {
+            if (contentParent != null)
+            {
+                Label errorLabel = new Label();
+                errorLabel.text = $"{message}";
+                errorLabel.style.color = Color.red;
+                errorLabel.style.fontSize = 18;
+                errorLabel.style.unityTextAlign = TextAnchor.MiddleCenter;
+                errorLabel.style.marginTop = 40;
+                errorLabel.style.marginBottom = 40;
+                contentParent.Add(errorLabel);
             }
         }
+
+        // ============================================================
+        // ITEM CLICK HANDLER
+        // ============================================================
         private void HandleItemClicked(CodexItemDefinition item)
         {
             if (isOpeningDetail)
@@ -156,6 +280,9 @@ namespace Features.Codex
             StartCoroutine(OpenCodexDetail(item));
         }
 
+        // ============================================================
+        // NAVIGATION
+        // ============================================================
         private IEnumerator OpenCodexDetail(CodexItemDefinition item)
         {
             isOpeningDetail = true;
@@ -171,7 +298,16 @@ namespace Features.Codex
 
             Debug.Log("[CodexPageController] Directions loaded. Opening CodexDetail.");
 
-            NavigationManager.Instance.NavigateTo("CodexDetail");
+            isOpeningDetail = false;
+
+            if (NavigationManager.Instance != null)
+            {
+                NavigationManager.Instance.NavigateTo("CodexDetailUIToolkit");
+            }
+            else
+            {
+                Debug.LogError("[CodexPageController] NavigationManager missing.");
+            }
         }
 
         private void OnBackClicked()
@@ -182,13 +318,7 @@ namespace Features.Codex
                 return;
             }
 
-            NavigationManager.Instance.NavigateTo("Menu");
-        }
-
-        private void OnDestroy()
-        {
-            if (goBackButton != null)
-                goBackButton.onClick.RemoveAllListeners();
+            NavigationManager.Instance.GoBack();
         }
     }
 }

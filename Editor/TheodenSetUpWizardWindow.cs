@@ -4,6 +4,11 @@ using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 
+/// <summary>
+/// Provides the initial setup workflow for a THEODEN application.
+/// The wizard creates the project folder structure, configuration assets,
+/// language settings, and POI registry entries required by the authoring tools.
+/// </summary>
 public class TheodenSetupWizardWindow : EditorWindow
 {
     private string applicationName = "New Theoden App";
@@ -13,6 +18,9 @@ public class TheodenSetupWizardWindow : EditorWindow
 
     private Vector2 scrollPosition;
 
+    /// <summary>
+    /// Opens the THEODEN Setup Wizard window and applies its initial editor settings.
+    /// </summary>
     [MenuItem("THEODEN/1.Setup Wizard")]
     public static void Open()
     {
@@ -22,6 +30,10 @@ public class TheodenSetupWizardWindow : EditorWindow
         window.Show();
     }
 
+    /// <summary>
+    /// Initializes the selectable languages and default POI entries when the window is enabled.
+    /// Existing in-memory selections are preserved.
+    /// </summary>
     private void OnEnable()
     {
         InitializeLanguages();
@@ -34,6 +46,9 @@ public class TheodenSetupWizardWindow : EditorWindow
         }
     }
 
+    /// <summary>
+    /// Draws the complete scrollable interface of the setup wizard.
+    /// </summary>
     private void OnGUI()
     {
         scrollPosition = EditorGUILayout.BeginScrollView(scrollPosition);
@@ -48,6 +63,9 @@ public class TheodenSetupWizardWindow : EditorWindow
         EditorGUILayout.EndScrollView();
     }
 
+    /// <summary>
+    /// Draws the wizard title and introductory information.
+    /// </summary>
     private void DrawHeader()
     {
         EditorGUILayout.Space(10);
@@ -62,6 +80,9 @@ public class TheodenSetupWizardWindow : EditorWindow
         EditorGUILayout.Space(10);
     }
 
+    /// <summary>
+    /// Draws the application settings and previews the sanitized root folder path.
+    /// </summary>
     private void DrawApplicationSection()
     {
         EditorGUILayout.LabelField("Application", EditorStyles.boldLabel);
@@ -74,6 +95,9 @@ public class TheodenSetupWizardWindow : EditorWindow
         EditorGUILayout.Space(10);
     }
 
+    /// <summary>
+    /// Draws the available language options and their editable display names.
+    /// </summary>
     private void DrawLanguagesSection()
     {
         EditorGUILayout.LabelField("Languages", EditorStyles.boldLabel);
@@ -102,6 +126,9 @@ public class TheodenSetupWizardWindow : EditorWindow
         EditorGUILayout.Space(10);
     }
 
+    /// <summary>
+    /// Draws the editable POI list and previews the identifier generated for each POI.
+    /// </summary>
     private void DrawPOISection()
     {
         EditorGUILayout.LabelField("POIs", EditorStyles.boldLabel);
@@ -147,6 +174,9 @@ public class TheodenSetupWizardWindow : EditorWindow
         EditorGUILayout.Space(10);
     }
 
+    /// <summary>
+    /// Draws a preview of the folder structure that will be generated.
+    /// </summary>
     private void DrawSummarySection()
     {
         EditorGUILayout.LabelField("Project Structure Preview", EditorStyles.boldLabel);
@@ -167,6 +197,9 @@ public class TheodenSetupWizardWindow : EditorWindow
         EditorGUILayout.Space(10);
     }
 
+    /// <summary>
+    /// Draws the action used to validate the current settings and create the project structure.
+    /// </summary>
     private void DrawActionButtons()
     {
         GUIStyle buttonStyle = new GUIStyle(GUI.skin.button)
@@ -181,6 +214,10 @@ public class TheodenSetupWizardWindow : EditorWindow
         }
     }
 
+    /// <summary>
+    /// Populates the language selection list from the languages supported by THEODEN.
+    /// English is selected by default.
+    /// </summary>
     private void InitializeLanguages()
     {
         if (languageSelections.Count > 0)
@@ -199,6 +236,10 @@ public class TheodenSetupWizardWindow : EditorWindow
         }
     }
 
+    /// <summary>
+    /// Creates or reuses the folders and configuration assets required by the project,
+    /// applies the selected settings, and registers the configured POIs.
+    /// </summary>
     private void CreateProjectStructure()
     {
         if (!ValidateInput())
@@ -251,6 +292,9 @@ public class TheodenSetupWizardWindow : EditorWindow
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
 
+        //Selects the projectConfig as the current object
+        //Shows its fields in the inspector when the wizard is closed 
+        //the user can check the created project easily this way
         Selection.activeObject = projectConfig;
 
         EditorUtility.DisplayDialog(
@@ -260,6 +304,14 @@ public class TheodenSetupWizardWindow : EditorWindow
         );
     }
 
+    /// <summary>
+    /// Validates the application name, selected languages, and generated POI identifiers.
+    /// If the target project folder already exists, asks the user whether it should be reused.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> when the current input can be used to create the project;
+    /// otherwise, <see langword="false"/>.
+    /// </returns>
     private bool ValidateInput()
     {
         if (string.IsNullOrWhiteSpace(applicationName))
@@ -345,6 +397,11 @@ public class TheodenSetupWizardWindow : EditorWindow
         return true;
     }
 
+    /// <summary>
+    /// Loads the project's POI registry or creates it when it does not yet exist.
+    /// </summary>
+    /// <param name="configPath">The Unity project-relative path of the configuration folder.</param>
+    /// <returns>The existing or newly created POI registry.</returns>
     private POIRegistry CreateOrLoadPOIRegistry(string configPath)
     {
         string assetPath = $"{configPath}/POIRegistry.asset";
@@ -362,6 +419,11 @@ public class TheodenSetupWizardWindow : EditorWindow
         return registry;
     }
 
+    /// <summary>
+    /// Loads the project's language configuration or creates it when it does not yet exist.
+    /// </summary>
+    /// <param name="configPath">The Unity project-relative path of the configuration folder.</param>
+    /// <returns>The existing or newly created language configuration.</returns>
     private LanguageConfig CreateOrLoadLanguageConfig(string configPath)
     {
         string assetPath = $"{configPath}/languageConfig.asset";
@@ -381,6 +443,11 @@ public class TheodenSetupWizardWindow : EditorWindow
         return languageConfig;
     }
 
+    /// <summary>
+    /// Loads the main THEODEN project configuration or creates it when it does not yet exist.
+    /// </summary>
+    /// <param name="configPath">The Unity project-relative path of the configuration folder.</param>
+    /// <returns>The existing or newly created project configuration.</returns>
     private TheodenProjectConfig CreateOrLoadProjectConfig(string configPath)
     {
         string assetPath = $"{configPath}/TheodenProjectConfig.asset";
@@ -398,6 +465,10 @@ public class TheodenSetupWizardWindow : EditorWindow
         return projectConfig;
     }
 
+    /// <summary>
+    /// Replaces the language configuration contents with the languages currently selected in the wizard.
+    /// </summary>
+    /// <param name="languageConfig">The language configuration asset to update.</param>
     private void ConfigureLanguageConfig(LanguageConfig languageConfig)
     {
         languageConfig.languages ??= new List<LanguageEntry>();
@@ -413,6 +484,20 @@ public class TheodenSetupWizardWindow : EditorWindow
         }
     }
 
+    /// <summary>
+    /// Applies the current wizard settings, project paths, and configuration asset references
+    /// to the main THEODEN project configuration.
+    /// </summary>
+    /// <param name="projectConfig">The project configuration asset to update.</param>
+    /// <param name="rootPath">The Unity project-relative root path of the application.</param>
+    /// <param name="configPath">The path containing the project's configuration assets.</param>
+    /// <param name="codexPath">The path containing Codex data.</param>
+    /// <param name="directionsPath">The path containing directions data.</param>
+    /// <param name="poisPath">The root path containing POI folders.</param>
+    /// <param name="mediaPath">The path containing application-level media.</param>
+    /// <param name="qrCodesPath">The path containing generated QR codes.</param>
+    /// <param name="poiRegistry">The POI registry associated with the project.</param>
+    /// <param name="languageConfig">The language configuration associated with the project.</param>
     private void ConfigureProjectConfig(
         TheodenProjectConfig projectConfig,
         string rootPath,
@@ -449,6 +534,12 @@ public class TheodenSetupWizardWindow : EditorWindow
         projectConfig.useAddressables = true;
     }
 
+    /// <summary>
+    /// Creates the data and media folders for each configured POI and adds the POI
+    /// to the project registry.
+    /// </summary>
+    /// <param name="poisPath">The Unity project-relative root path containing all POI folders.</param>
+    /// <param name="registry">The registry in which the configured POIs are recorded.</param>
     private void CreatePOIFoldersAndRegisterPOIs(string poisPath, POIRegistry registry)
     {
         foreach (POISetupData poiData in poiSetupData)
@@ -464,6 +555,11 @@ public class TheodenSetupWizardWindow : EditorWindow
         }
     }
 
+    /// <summary>
+    /// Creates a direct child folder when it is not already present.
+    /// </summary>
+    /// <param name="parentPath">The Unity project-relative path of the parent folder.</param>
+    /// <param name="folderName">The name of the child folder to create.</param>
     private void CreateFolderIfMissing(string parentPath, string folderName)
     {
         string fullPath = $"{parentPath}/{folderName}";
@@ -474,11 +570,24 @@ public class TheodenSetupWizardWindow : EditorWindow
         }
     }
 
+    /// <summary>
+    /// Gets the languages currently enabled in the wizard.
+    /// </summary>
+    /// <returns>A new list containing the selected language entries.</returns>
     private List<LanguageSelectionData> GetSelectedLanguages()
     {
         return languageSelections.FindAll(language => language.isSelected);
     }
 
+    /// <summary>
+    /// Converts an application name into a folder name containing only letters,
+    /// digits, and underscores.
+    /// </summary>
+    /// <param name="rawName">The application name entered by the user.</param>
+    /// <returns>
+    /// A valid folder name, or <c>NewTheodenApp</c> when the input does not contain
+    /// any supported characters.
+    /// </returns>
     private static string SanitizeFolderName(string rawName)
     {
         if (string.IsNullOrWhiteSpace(rawName))
@@ -499,6 +608,13 @@ public class TheodenSetupWizardWindow : EditorWindow
         return result;
     }
 
+    /// <summary>
+    /// Generates the canonical POI identifier associated with a display name.
+    /// </summary>
+    /// <param name="displayName">The human-readable POI name.</param>
+    /// <returns>
+    /// A lowercase snake_case identifier, or an empty string when the display name is empty.
+    /// </returns>
     private static string GeneratePoiId(string displayName)
     {
         if (string.IsNullOrWhiteSpace(displayName))
@@ -516,11 +632,18 @@ public class TheodenSetupWizardWindow : EditorWindow
         return id;
     }
 
+    /// <summary>
+    /// Stores the editable setup data for a POI displayed by the wizard.
+    /// </summary>
     private class POISetupData
     {
         public string displayName;
         public string poiId;
 
+        /// <summary>
+        /// Initializes a POI setup entry and generates its initial identifier.
+        /// </summary>
+        /// <param name="displayName">The initial human-readable POI name.</param>
         public POISetupData(string displayName)
         {
             this.displayName = displayName;
@@ -528,6 +651,9 @@ public class TheodenSetupWizardWindow : EditorWindow
         }
     }
 
+    /// <summary>
+    /// Stores the selection state and display name of a supported language.
+    /// </summary>
     private class LanguageSelectionData
     {
         public LanguageList language;

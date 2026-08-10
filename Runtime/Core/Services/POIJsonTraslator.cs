@@ -67,14 +67,16 @@ public static class POIJsonTraslator
     private static MultipleChoicePOIModel ConvertMultipleChoice(JToken template)
     {
         JToken challenge = template?["challenge"];
-        JToken poi = template?["gameData"]?["pointOfInterest"];
+        JToken pointOfInterest = template?["gameData"]?["pointOfInterest"];
+        JToken poiReference = template?["poi"];
 
-        if (!ValidateCommonNodes(challenge, poi))
+        if (!ValidateCommonNodes(challenge, pointOfInterest, poiReference))
             return null;
 
         MultipleChoicePOIModel model = CreateBaseModel<MultipleChoicePOIModel>(
             challenge,
-            poi
+            pointOfInterest,
+            poiReference
         );
 
         model.correctAnswer = challenge["correctAnswer"]?.ToString() ?? "";
@@ -98,14 +100,16 @@ public static class POIJsonTraslator
     private static OpenAnswerPOIModel ConvertOpenAnswer(JToken template)
     {
         JToken challenge = template?["challenge"];
-        JToken poi = template?["gameData"]?["pointOfInterest"];
+        JToken pointOfInterest = template?["gameData"]?["pointOfInterest"];
+        JToken poiReference = template?["poi"];
 
-        if (!ValidateCommonNodes(challenge, poi))
+        if (!ValidateCommonNodes(challenge, pointOfInterest, poiReference))
             return null;
 
         OpenAnswerPOIModel model = CreateBaseModel<OpenAnswerPOIModel>(
             challenge,
-            poi
+            pointOfInterest,
+            poiReference
         );
 
         model.correctAnswers = ReadOpenAnswerCorrectAnswers(challenge);
@@ -127,28 +131,30 @@ public static class POIJsonTraslator
     /// </summary>
     private static TModel CreateBaseModel<TModel>(
         JToken challenge,
-        JToken poi)
+        JToken pointOfInterest,
+        JToken poiReference)
         where TModel : POIModel, new()
     {
         TModel model = new TModel
         {
-            poiName = poi["name"]?.ToString() ?? "",
-            category = poi["category"]?.ToString() ?? "",
+            poiId = poiReference["poiId"]?.ToString() ?? "",
+            poiName = poiReference["poiName"]?.ToString() ?? "",
+            category = pointOfInterest["category"]?.ToString() ?? "",
 
-            shortSummary = poi["story"]?["shortSummary"]?.ToString() ?? "",
-            fullNarrative = poi["story"]?["fullNarrative"]?.ToString() ?? "",
+            shortSummary = pointOfInterest["story"]?["shortIntroductorySummary"]?.ToString() ?? "",
+            fullNarrative = pointOfInterest["story"]?["fullNarrative"]?.ToString() ?? "",
 
             initialDescription = challenge["initialDescription"]?.ToString() ?? "",
             question = challenge["question"]?.ToString() ?? "",
-            points = challenge["points"]?.Value<int>() ?? 0,
+            points = ReadChallengePoints(challenge),
             hint = challenge["hint"]?.ToString() ?? "",
 
             poiBadgeAddress = challenge["poiBadge"]?.ToString() ?? "",
 
-            images = ReadImageReferences(poi),
+            images = ReadImageReferences(pointOfInterest),
 
-            musicAddress = ReadMusicAddress(poi),
-            audioDescriptionAddress = ReadAudioDescriptionAddress(poi),
+            musicAddress = ReadMusicAddress(pointOfInterest),
+            audioDescriptionAddress = ReadAudioDescriptionAddress(pointOfInterest),
 
             isChallengeCompleted = false
         };
@@ -172,7 +178,7 @@ public static class POIJsonTraslator
     /// <summary>
     /// Validates common JSON nodes required by all POI challenge types.
     /// </summary>
-    private static bool ValidateCommonNodes(JToken challenge, JToken poi)
+    private static bool ValidateCommonNodes(JToken challenge, JToken pointOfInterest, JToken poiReference)
     {
         if (challenge == null)
         {
@@ -180,9 +186,23 @@ public static class POIJsonTraslator
             return false;
         }
 
-        if (poi == null)
+        if (pointOfInterest == null)
         {
             Debug.LogError("[POIJsonTranslator] PointOfInterest node missing.");
+            return false;
+        }
+
+        if (poiReference == null)
+        {
+            Debug.LogError("[POIJsonTranslator] Poi reference missing.");
+            return false;
+        }
+        
+        string poiId = poiReference["poiId"]?.ToString() ?? "";
+
+        if (string.IsNullOrWhiteSpace(poiId))
+        {
+            Debug.LogError("[POIJsonTranslator] Poi id missing.");
             return false;
         }
 
@@ -288,5 +308,19 @@ public static class POIJsonTraslator
         }
 
         return correctAnswers;
+    }
+    
+    /// <summary>
+    /// Reads the configured challenge points and applies the default value
+    /// when the field is missing, zero, negative, or malformed.
+    /// </summary>
+    private static int ReadChallengePoints(JToken challenge)
+    {
+        string serializedPoints = challenge?["points"]?.ToString();
+
+        if (!int.TryParse(serializedPoints, out int configuredPoints))
+            configuredPoints = 0;
+
+        return TheodenScoringRules.ResolveChallengePoints(configuredPoints);
     }
 }

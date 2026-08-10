@@ -358,6 +358,19 @@ public class DirectionsToPOICreatorWindow : EditorWindow
         string poiId = selectedPoi.PoiId;
         string poiName = selectedPoi.DisplayName;
         LanguageList language = selectedLanguageData.language;
+        string projectId =
+            _projectContext.projectId;
+        
+        if (string.IsNullOrWhiteSpace(projectId))
+        {
+            EditorUtility.DisplayDialog(
+                "Export Failed",
+                "The selected THEODEN project has no valid project id.",
+                "OK"
+            );
+
+            return;
+        }
 
         if (string.IsNullOrWhiteSpace(poiId))
         {
@@ -379,6 +392,7 @@ public class DirectionsToPOICreatorWindow : EditorWindow
 
         if (!DirectionsExportService.ExportDirections(
                 data,
+                projectId,
                 poiId,
                 language,
                 _projectContext.directionsFolderPath,

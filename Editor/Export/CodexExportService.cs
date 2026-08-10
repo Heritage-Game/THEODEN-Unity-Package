@@ -27,6 +27,7 @@ namespace Theoden.Editor.Export
         /// <returns>True if export succeeds; otherwise false.</returns>
         public static bool ExportCodex(
             CodexMenu menuData,
+            string projectId,
             LanguageList language,
             string codexFolderPath,
             string fileName,
@@ -40,7 +41,14 @@ namespace Theoden.Editor.Export
                 return false;
             }
 
-            codexFolderPath = NormalizeUnityPath(codexFolderPath);
+            if (string.IsNullOrWhiteSpace(projectId))
+            {
+                error = "THEODEN project id is missing.";
+                return false;
+            }
+
+            codexFolderPath =
+                NormalizeUnityPath(codexFolderPath);
 
             if (!WriteJsonFile(
                     menuData,
@@ -54,6 +62,7 @@ namespace Theoden.Editor.Export
 
             if (!SetupJsonAsAddressable(
                     jsonAssetPath,
+                    projectId,
                     language,
                     out error))
             {
@@ -64,6 +73,23 @@ namespace Theoden.Editor.Export
             AssetDatabase.SaveAssets();
 
             return true;
+        }
+        
+        [Obsolete(
+            "Use ExportCodex with projectId."
+        )]
+        public static bool ExportCodex(
+            CodexMenu menuData,
+            LanguageList language,
+            string codexFolderPath,
+            string fileName,
+            out string error)
+        {
+            error =
+                "CodexCreatorWindow still uses the legacy Codex export " +
+                "method. Update the window before exporting.";
+
+            return false;
         }
 
         /// <summary>
@@ -129,12 +155,14 @@ namespace Theoden.Editor.Export
         /// </summary>
         private static bool SetupJsonAsAddressable(
             string jsonAssetPath,
+            string projectId,
             LanguageList language,
             out string error)
         {
             error = null;
 
-            AddressableAssetSettings settings = AddressableAssetSettingsDefaultObject.Settings;
+            AddressableAssetSettings settings =
+                AddressableAssetSettingsDefaultObject.Settings;
 
             if (settings == null)
             {
@@ -142,32 +170,70 @@ namespace Theoden.Editor.Export
                 return false;
             }
 
-            string groupName = TheodenAddressablesNaming.GetCodexGroupName();
-            string label = TheodenAddressablesNaming.GetCodexLabel();
+            string groupName =
+                TheodenAddressablesNaming.GetCodexGroupName(
+                    projectId
+                );
 
-            AddressableAssetGroup group = GetOrCreateGroup(settings, groupName);
-            
-            if (!AddressablesGroupPathConfigurator.ConfigureGroupPaths(settings, group))
+            string label =
+                TheodenAddressablesNaming.GetCodexLabel(
+                    projectId
+                );
+
+            AddressableAssetGroup group =
+                GetOrCreateGroup(
+                    settings,
+                    groupName
+                );
+
+            if (!AddressablesGroupPathConfigurator
+                    .ConfigureGroupPaths(settings, group))
             {
-                error = $"Could not configure Addressables paths for group: {groupName}";
+                error =
+                    "Could not configure Addressables paths for group: " +
+                    groupName;
+
                 return false;
             }
 
-            string guid = AssetDatabase.AssetPathToGUID(jsonAssetPath);
+            string guid =
+                AssetDatabase.AssetPathToGUID(
+                    jsonAssetPath
+                );
 
             if (string.IsNullOrWhiteSpace(guid))
             {
-                error = $"Could not find GUID for exported codex JSON: {jsonAssetPath}";
+                error =
+                    "Could not find GUID for exported Codex JSON: " +
+                    jsonAssetPath;
+
                 return false;
             }
 
-            AddressableAssetEntry entry = settings.CreateOrMoveEntry(guid, group);
+            AddressableAssetEntry entry =
+                settings.CreateOrMoveEntry(
+                    guid,
+                    group
+                );
 
-            entry.address = TheodenAddressablesNaming.GetCodexJsonAddress(language);
-            entry.SetLabel(label, true, true);
+            PoiAddressablesSetupService
+                .RemoveOldTheodenLabels(entry);
+
+            entry.address =
+                TheodenAddressablesNaming.GetCodexJsonAddress(
+                    projectId,
+                    language
+                );
+
+            entry.SetLabel(
+                label,
+                true,
+                true
+            );
 
             settings.SetDirty(
-                AddressableAssetSettings.ModificationEvent.EntryMoved,
+                AddressableAssetSettings
+                    .ModificationEvent.EntryMoved,
                 group,
                 true
             );
