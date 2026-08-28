@@ -238,6 +238,28 @@ public static class PlayerProgressService
     }
 
     /// <summary>
+    /// Returns the total time spent completing all saved POIs.
+    /// </summary>
+    public static float GetTotalCompletionTimeSeconds()
+    {
+        float totalTimeSeconds = 0f;
+
+        foreach (PoiProgressData poiProgress
+                 in GetProgress().completedPois)
+        {
+            if (poiProgress == null)
+                continue;
+
+            totalTimeSeconds += Mathf.Max(
+                0f,
+                poiProgress.completionTimeSeconds
+            );
+        }
+
+        return totalTimeSeconds;
+    }
+    
+    /// <summary>
     /// Deletes all progression data.
     /// </summary>
     public static void ResetProgress()

@@ -70,6 +70,7 @@ public class ChallengeGameManager : MonoBehaviour
 
         root = uiDocument.rootVisualElement;
         BindUIElements();
+        EnsureLocalizationManager();
         SetupButtons();
         LoadAndDisplay();
     }
@@ -82,6 +83,19 @@ public class ChallengeGameManager : MonoBehaviour
         if (backButton != null)
             backButton.clicked -= OnBackClicked;
         ClearGeneratedAnswers();
+    }
+
+    private void EnsureLocalizationManager()
+    {
+        if (LocalizationManager.Instance == null)
+        {
+            GameObject go = new GameObject("LocalizationManager");
+            LocalizationManager lm = go.AddComponent<LocalizationManager>();
+            DontDestroyOnLoad(go);
+            Debug.Log("[InstructionsPageManager] LocalizationManager created.");
+        }
+
+        LocalizationManager.Instance?.LoadLocalization();
     }
 
     // ============================================================
@@ -139,6 +153,10 @@ public class ChallengeGameManager : MonoBehaviour
         {
             hintButton.clicked -= OnHintClicked;
             hintButton.clicked += OnHintClicked;
+            if (LocalizationManager.Instance != null)
+            {
+                hintButton.text = LocalizationManager.Instance.GetText("hint_button");
+            }
         }
 
         if (backButton != null)
@@ -443,7 +461,7 @@ public class ChallengeGameManager : MonoBehaviour
             return;
 
         string hint = string.IsNullOrWhiteSpace(currentPOI.hint)
-            ? "No hint available."
+            ? LocalizationManager.Instance.GetText("no_hint_label")
             : currentPOI.hint;
 
         questionText.text = currentPOI.question + "\n\n<b>Hint:</b> " + hint;
@@ -575,7 +593,7 @@ public class ChallengeGameManager : MonoBehaviour
         if (progressLabel == null)
             return;
 
-        progressLabel.text = $"Attempts: {wrongAttempts}/{MAX_ATTEMPTS}";
+        progressLabel.text = $"{LocalizationManager.Instance.GetText("attempts_progress")}: {wrongAttempts}/{MAX_ATTEMPTS}";
         progressLabel.style.color = correctColor;
     }
 

@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+using System.Collections.Generic;
 using UnityEngine.UIElements;
 
 public class InstructionsPageManager : MonoBehaviour
@@ -15,6 +16,10 @@ public class InstructionsPageManager : MonoBehaviour
     private Button continueButton;
     private Button backButton;
 
+    // flavour text
+    private LocalizationEntry currentLocalization;
+    private Dictionary<string, string> textDictionary = new Dictionary<string, string>();
+
     // ============================================================
     // UNITY LIFECYCLE
     // ============================================================
@@ -28,6 +33,7 @@ public class InstructionsPageManager : MonoBehaviour
 
         root = uiDocument.rootVisualElement;
         BindUIElements();
+        EnsureLocalizationManager();
         SetupButtons();
         LoadInstructions();
     }
@@ -39,6 +45,19 @@ public class InstructionsPageManager : MonoBehaviour
 
         if (backButton != null)
             backButton.clicked -= OnBackClicked;
+    }
+
+    private void EnsureLocalizationManager()
+    {
+        if (LocalizationManager.Instance == null)
+        {
+            GameObject go = new GameObject("LocalizationManager");
+            LocalizationManager lm = go.AddComponent<LocalizationManager>();
+            DontDestroyOnLoad(go);
+            Debug.Log("[InstructionsPageManager] LocalizationManager created.");
+        }
+
+        LocalizationManager.Instance?.LoadLocalization();
     }
 
     // ============================================================
@@ -73,6 +92,10 @@ public class InstructionsPageManager : MonoBehaviour
         {
             continueButton.clicked -= OnContinueClicked;
             continueButton.clicked += OnContinueClicked;
+            if (LocalizationManager.Instance != null)
+            {
+                continueButton.text = LocalizationManager.Instance.GetText("continue_button");
+            }
         }
 
         if (backButton != null)
@@ -85,23 +108,16 @@ public class InstructionsPageManager : MonoBehaviour
     // ============================================================
     // LOAD INSTRUCTIONS
     // ============================================================
-
     private void LoadInstructions()
     {
         if (titleLabel != null)
         {
-            titleLabel.text = "Instructions";
+            titleLabel.text = LocalizationManager.Instance.GetText("instructions_title");
         }
 
         if (instructionsText != null)
         {
-            instructionsText.text =
-                "Heritage Game was created to make visiting and learning about cultural sites more exciting and interactive.\n\n" +
-                "1) Read the map\n" +
-                "2) Find the points of interest listed in the codex\n" +
-                "3) scan the QR code for the point of interest you found\n" +
-                "4) Take the quiz and verify your knowledge\n\n" +
-                "Have fun and contribute in keeping cultural heritage alive!";
+            instructionsText.text = LocalizationManager.Instance.GetText("instructions_text");
         }
     }
 

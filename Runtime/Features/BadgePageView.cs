@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 using UnityEngine.UIElements;
 
 public class BadgePageView : MonoBehaviour
@@ -13,8 +14,14 @@ public class BadgePageView : MonoBehaviour
     private Image badgeImage;
     private VisualElement badgeContainer;
     private Label scoreLabel;
+    private Label titleLabel;
+    private Label badgeLabel;
     private Button continueButton;
     private Button backButton;
+
+    // flavour text
+    private LocalizationEntry currentLocalization;
+    private Dictionary<string, string> textDictionary = new Dictionary<string, string>();
 
     // ============================================================
     // RUNTIME STATE
@@ -34,8 +41,10 @@ public class BadgePageView : MonoBehaviour
 
         root = uiDocument.rootVisualElement;
         BindUIElements();
+        EnsureLocalizationManager();
         SetupButtons();
         LoadData();
+        LoadLocalizedTexts();
     }
 
     private void OnDisable()
@@ -47,6 +56,19 @@ public class BadgePageView : MonoBehaviour
             backButton.clicked -= OnBackClicked;
     }
 
+    private void EnsureLocalizationManager()
+    {
+        if (LocalizationManager.Instance == null)
+        {
+            GameObject go = new GameObject("LocalizationManager");
+            LocalizationManager lm = go.AddComponent<LocalizationManager>();
+            DontDestroyOnLoad(go);
+            Debug.Log("[InstructionsPageManager] LocalizationManager created.");
+        }
+
+        LocalizationManager.Instance?.LoadLocalization();
+    }
+
     // ============================================================
     // UI BINDING
     // ============================================================
@@ -54,6 +76,8 @@ public class BadgePageView : MonoBehaviour
     {
         badgeImage = root.Q<Image>("badge_image");
         scoreLabel = root.Q<Label>("score_label");
+        badgeLabel = root.Q<Label>("badge_label");
+        titleLabel = root.Q<Label>("challenge_completed_label");
         badgeContainer = root.Q<VisualElement>("badge_container");
         continueButton = root.Q<Button>("continue_button");
         backButton = root.Q<Button>("back_button");
@@ -185,6 +209,29 @@ public class BadgePageView : MonoBehaviour
 
         if (continueButton != null)
             continueButton.SetEnabled(false);
+    }
+
+    private void LoadLocalizedTexts()
+    {
+        if (LocalizationManager.Instance == null)
+            return;
+
+        LocalizationManager.Instance.LoadLocalization();
+
+        if (titleLabel != null)
+        {
+            titleLabel.text = LocalizationManager.Instance.GetText("challenge_completed_label");
+        }
+
+        if (badgeLabel != null)
+        {
+            badgeLabel.text = LocalizationManager.Instance.GetText("badge_label");
+        }
+
+        if (continueButton != null)
+        {
+            continueButton.text = LocalizationManager.Instance.GetText("continue_button");
+        }
     }
 
     // ============================================================

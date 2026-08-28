@@ -1,0 +1,207 @@
+<ui:UXML
+    xmlns:ui="UnityEngine.UIElements"
+    editor-extension-mode="False">
+
+    <ui:Template
+        name="header"
+        src="project://database/Assets/header.uxml?fileID=9197481963319205126&amp;guid=8d0a7c03a2f6983458713eb0db140bab&amp;type=3#header" />
+
+    <Style src="Leaderboard.uss" />
+
+    <ui:VisualElement
+        name="page_root"
+        class="page-root">
+
+        <ui:Instance
+            template="header"
+            name="header_template"
+            class="page-header" />
+
+        <ui:ScrollView
+            name="page_scroll"
+            class="page-scroll"
+            mode="Vertical"
+            horizontal-scroller-visibility="Hidden"
+            vertical-scroller-visibility="Auto">
+
+            <ui:VisualElement
+                name="content"
+                class="content-column">
+
+                <ui:Label
+                    text="Leaderboard and badges"
+                    name="page_title"
+                    class="page-title font-bold" />
+
+                <!-- Personal progress summary -->
+                <ui:VisualElement class="card-shadow">
+                    <ui:VisualElement
+                        name="score_panel"
+                        class="card summary-card">
+
+                        <ui:VisualElement
+                            name="left_panel"
+                            class="summary-column summary-column-left">
+
+                            <ui:Label
+                                text="Player"
+                                name="player_label"
+                                class="summary-title font-bold" />
+
+                            <ui:Label
+                                text="Your current progress"
+                                name="progress_description_label"
+                                class="summary-subtitle" />
+
+                            <ui:Label
+                                text="TOTAL SCORE"
+                                class="metric-title" />
+
+                            <ui:Label
+                                text="0 p"
+                                name="score_label"
+                                class="metric-value font-bold" />
+
+                            <ui:Label
+                                text="TOTAL TIME"
+                                class="metric-title" />
+
+                            <ui:Label
+                                text="00:00"
+                                name="total_time_label"
+                                class="metric-value font-bold" />
+
+                        </ui:VisualElement>
+
+                        <ui:VisualElement
+                            name="summary_divider"
+                            class="summary-divider" />
+
+                        <ui:VisualElement
+                            name="right_panel"
+                            class="summary-column summary-column-right">
+
+                            <ui:Label
+                                text="Levels completed"
+                                class="metric-title" />
+
+                            <ui:Label
+                                text="0/0"
+                                name="levels_completed_label"
+                                class="metric-value font-bold" />
+
+                            <ui:VisualElement
+                                name="progress_bar_track"
+                                class="progress-track">
+
+                                <ui:VisualElement
+                                    name="progress_bar_fill"
+                                    class="progress-fill" />
+
+                            </ui:VisualElement>
+
+                            <ui:Label
+                                text="0% completed"
+                                name="completion_percentage_label"
+                                class="progress-percentage" />
+
+                        </ui:VisualElement>
+
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <ui:Button
+                    text="Update leaderboard"
+                    name="sync_leaderboard_button"
+                    class="primary-button" />
+
+                <!-- Leaderboard -->
+                <ui:VisualElement class="card-shadow">
+                    <ui:VisualElement
+                        name="leaderboard_panel"
+                        class="card panel-card">
+
+                        <ui:VisualElement class="panel-title-row">
+                            <ui:Label
+                                text="Leaderboard"
+                                class="panel-title font-bold" />
+                        </ui:VisualElement>
+
+                        <ui:Label
+                            text=""
+                            name="leaderboard_status_label"
+                            class="status-label" />
+
+                        <ui:VisualElement
+                            name="leaderboard_header"
+                            class="leaderboard-header">
+
+                            <ui:Label
+                                text="#"
+                                class="rank-column table-heading font-bold" />
+
+                            <ui:Label
+                                text="Player"
+                                class="player-column table-heading font-bold" />
+
+                            <ui:Label
+                                text="Score"
+                                class="score-column table-heading font-bold" />
+
+                            <ui:Label
+                                text="Time"
+                                class="time-column table-heading font-bold" />
+
+                        </ui:VisualElement>
+
+                        <ui:VisualElement
+                            name="leaderboard_entries"
+                            class="leaderboard-entries" />
+
+                        <ui:Label
+                            text="No leaderboard results available yet."
+                            name="empty_leaderboard_label"
+                            class="empty-state" />
+
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <!-- Badges -->
+                <ui:VisualElement class="card-shadow">
+                    <ui:VisualElement
+                        name="badges_panel"
+                        class="card panel-card">
+
+                        <ui:VisualElement class="panel-title-row">
+
+                            <ui:Label
+                                text="Badges"
+                                name="badges_label"
+                                class="panel-title font-bold" />
+
+                            <ui:Button
+                                text="View all &gt;"
+                                name="view_all_badges_button"
+                                class="secondary-button" />
+
+                        </ui:VisualElement>
+
+                        <ui:VisualElement
+                            name="badges_container"
+                            class="badges-content">
+
+                            <ui:Label
+                                text="Complete levels to earn badges."
+                                name="empty_badges_label"
+                                class="empty-state" />
+
+                        </ui:VisualElement>
+
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+            </ui:VisualElement>
+        </ui:ScrollView>
+
+    </ui:VisualElement>
+</ui:UXML>

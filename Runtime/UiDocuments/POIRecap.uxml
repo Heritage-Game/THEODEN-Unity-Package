@@ -1,0 +1,279 @@
+<ui:UXML
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xmlns:ui="UnityEngine.UIElements"
+    xmlns:uie="UnityEditor.UIElements"
+    noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+    editor-extension-mode="False">
+
+    <ui:Template
+        name="header"
+        src="project://database/Assets/header.uxml?fileID=9197481963319205126&amp;guid=8d0a7c03a2f6983458713eb0db140bab&amp;type=3#header" />
+
+    <ui:Instance
+        template="header"
+        name="header_template" />
+
+    <ui:VisualElement
+        name="body"
+        style="
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 260px;
+            bottom: 0;
+            background-color: rgb(247, 247, 247);
+            color: rgb(20, 20, 20);
+            -unity-font-definition:
+                url('project://database/Assets/Fonts/JosefinSans-Regular.ttf?fileID=12800000&amp;guid=ad61ec3515071bb4796d97d4d4954cbd&amp;type=3#JosefinSans-Regular');
+        ">
+
+        <ui:ScrollView
+            name="recap_scroll"
+            style="flex-grow: 1;">
+
+            <ui:VisualElement
+                name="content"
+                style="
+                    padding-left: 70px;
+                    padding-right: 70px;
+                    padding-top: 55px;
+                    padding-bottom: 100px;
+                ">
+
+                <ui:Label
+                    name="title_label"
+                    text="POI title"
+                    style="
+                        font-size: 80px;
+                        -unity-text-align: middle-center;
+                        white-space: normal;
+                        margin-bottom: 40px;
+                    " />
+
+                <ui:VisualElement
+                    name="image_container"
+                    style="
+                        height: 500px;
+                        margin-bottom: 20px;
+                        background-color: rgb(225, 225, 225);
+                        border-radius: 24px;
+                    ">
+
+                    <ui:Image
+                        name="poi_image"
+                        style="
+                            flex-grow: 1;
+                            border-radius: 24px;
+                        " />
+
+                    <ui:Label
+                        name="image_counter_label"
+                        text="1/1"
+                        style="
+                            position: absolute;
+                            right: 20px;
+                            bottom: 20px;
+                            padding: 10px;
+                            background-color: rgba(0, 0, 0, 0.65);
+                            color: white;
+                            border-radius: 12px;
+                            font-size: 30px;
+                        " />
+                </ui:VisualElement>
+
+                <ui:VisualElement
+                    name="story_container"
+                    style="
+                        background-color: white;
+                        padding: 35px;
+                        margin-top: 25px;
+                        border-radius: 24px;
+                    ">
+
+                    <ui:Label
+                        text="Story"
+                        style="
+                            font-size: 52px;
+                            -unity-font-style: bold;
+                            margin-bottom: 20px;
+                        " />
+
+                    <ui:Label
+                        name="short_summary_label"
+                        text="Short summary"
+                        style="
+                            font-size: 38px;
+                            white-space: normal;
+                            margin-bottom: 30px;
+                        " />
+
+                    <ui:Label
+                        name="full_narrative_label"
+                        text="Full narrative"
+                        style="
+                            font-size: 34px;
+                            white-space: normal;
+                        " />
+                </ui:VisualElement>
+
+                <ui:VisualElement
+                    name="challenge_container"
+                    style="
+                        background-color: white;
+                        padding: 35px;
+                        margin-top: 35px;
+                        border-radius: 24px;
+                    ">
+
+                    <ui:Label
+                        text="Challenge"
+                        style="
+                            font-size: 52px;
+                            -unity-font-style: bold;
+                            margin-bottom: 20px;
+                        " />
+
+                    <ui:Label
+                        name="question_label"
+                        text="Question"
+                        style="
+                            font-size: 38px;
+                            white-space: normal;
+                            margin-bottom: 30px;
+                        " />
+
+                    <ui:Label
+                        text="Correct answer"
+                        style="
+                            font-size: 30px;
+                            color: rgb(85, 130, 45);
+                        " />
+
+                    <ui:Label
+                        name="correct_answer_label"
+                        text="Correct answer"
+                        style="
+                            font-size: 38px;
+                            white-space: normal;
+                            margin-bottom: 25px;
+                        " />
+
+                    <ui:VisualElement
+                        name="submitted_answer_container"
+                        style="
+                            display: none;
+                            background-color: rgb(255, 235, 235);
+                            padding: 25px;
+                            border-radius: 16px;
+                        ">
+
+                        <ui:Label
+                            text="Your last answer"
+                            style="
+                                font-size: 30px;
+                                color: rgb(160, 50, 50);
+                            " />
+
+                        <ui:Label
+                            name="submitted_answer_label"
+                            text="Submitted answer"
+                            style="
+                                font-size: 36px;
+                                white-space: normal;
+                            " />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <ui:VisualElement
+                    name="result_container"
+                    style="
+                        flex-direction: row;
+                        justify-content: space-between;
+                        margin-top: 35px;
+                    ">
+
+                    <ui:VisualElement
+                        style="
+                            width: 30%;
+                            background-color: white;
+                            padding: 25px;
+                            border-radius: 20px;
+                        ">
+                        <ui:Label text="Points" />
+                        <ui:Label
+                            name="points_label"
+                            text="+100"
+                            style="font-size: 45px;" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement
+                        style="
+                            width: 30%;
+                            background-color: white;
+                            padding: 25px;
+                            border-radius: 20px;
+                        ">
+                        <ui:Label text="Attempts" />
+                        <ui:Label
+                            name="attempts_label"
+                            text="1/2"
+                            style="font-size: 45px;" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement
+                        style="
+                            width: 30%;
+                            background-color: white;
+                            padding: 25px;
+                            border-radius: 20px;
+                        ">
+                        <ui:Label text="Time" />
+                        <ui:Label
+                            name="completion_time_label"
+                            text="00:30"
+                            style="font-size: 45px;" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <ui:VisualElement
+                    name="badge_container"
+                    style="
+                        align-items: center;
+                        background-color: white;
+                        padding: 35px;
+                        margin-top: 35px;
+                        border-radius: 24px;
+                    ">
+
+                    <ui:Label
+                        text="Badge earned"
+                        style="
+                            font-size: 48px;
+                            -unity-font-style: bold;
+                            margin-bottom: 20px;
+                        " />
+
+                    <ui:Image
+                        name="badge_image"
+                        style="
+                            width: 240px;
+                            height: 240px;
+                        " />
+                </ui:VisualElement>
+
+                <ui:Button
+                    name="codex_button"
+                    text="BACK TO CODEX"
+                    style="
+                        height: 140px;
+                        margin-top: 45px;
+                        background-color: rgb(132, 196, 65);
+                        color: white;
+                        border-radius: 30px;
+                        font-size: 48px;
+                        -unity-font-style: bold;
+                    " />
+            </ui:VisualElement>
+        </ui:ScrollView>
+    </ui:VisualElement>
+</ui:UXML>

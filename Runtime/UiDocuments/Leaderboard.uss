@@ -1,0 +1,291 @@
+.page-root {
+    flex-grow: 1;
+    width: 100%;
+    height: 100%;
+    background-color: rgb(247, 247, 247);
+    color: rgb(28, 28, 28);
+    font-size: 40px;
+    -unity-font-definition: url("project://database/Assets/Fonts/JosefinSans-Regular.ttf?fileID=12800000&guid=ad61ec3515071bb4796d97d4d4954cbd&type=3#JosefinSans-Regular");
+}
+
+.font-bold {
+    -unity-font-definition: url("project://database/Assets/Fonts/JosefinSans-Bold.ttf?fileID=12800000&guid=7dc48762b7bd51e4f9e17e6c8e143c5c&type=3#JosefinSans-Bold");
+}
+
+.page-header {
+    height: 260px;
+    flex-shrink: 0;
+}
+
+.page-scroll {
+    flex-grow: 1;
+}
+
+.content-column {
+    width: 86%;
+    max-width: 930px;
+    align-self: center;
+    padding-top: 55px;
+    padding-bottom: 90px;
+}
+
+.page-title {
+    margin-bottom: 55px;
+    font-size: 64px;
+    color: rgb(20, 20, 20);
+    -unity-text-align: middle-center;
+}
+
+/* The wrapper remains in the layout and exposes its background
+   along the right and bottom edges, creating a shadow effect. */
+.card-shadow {
+    margin-bottom: 55px;
+    padding-right: 10px;
+    padding-bottom: 12px;
+    background-color: rgba(0, 0, 0, 0.10);
+
+    border-top-left-radius: 24px;
+    border-top-right-radius: 24px;
+    border-bottom-left-radius: 24px;
+    border-bottom-right-radius: 24px;
+}
+
+.card {
+    background-color: rgb(255, 255, 255);
+
+    border-top-left-radius: 22px;
+    border-top-right-radius: 22px;
+    border-bottom-left-radius: 22px;
+    border-bottom-right-radius: 22px;
+}
+
+.summary-card {
+    min-height: 430px;
+    flex-direction: row;
+
+    padding-top: 40px;
+    padding-right: 40px;
+    padding-bottom: 40px;
+    padding-left: 40px;
+}
+
+.summary-column {
+    flex-grow: 1;
+    flex-basis: 0;
+    justify-content: center;
+}
+
+.summary-column-left {
+    padding-right: 35px;
+}
+
+.summary-column-right {
+    padding-left: 35px;
+}
+
+.summary-divider {
+    width: 2px;
+    align-self: stretch;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    background-color: rgb(205, 205, 205);
+}
+
+.summary-title {
+    margin-bottom: 12px;
+    font-size: 48px;
+    color: rgb(25, 25, 25);
+}
+
+.summary-subtitle {
+    margin-bottom: 38px;
+    font-size: 34px;
+    color: rgb(119, 119, 119);
+    white-space: normal;
+}
+
+.metric-title {
+    margin-top: 15px;
+    margin-bottom: 8px;
+    font-size: 34px;
+    color: rgb(45, 45, 45);
+}
+
+.metric-value {
+    margin-bottom: 20px;
+    font-size: 60px;
+    color: rgb(132, 196, 65);
+}
+
+.progress-track {
+    width: 100%;
+    height: 22px;
+    margin-top: 8px;
+    margin-bottom: 20px;
+    background-color: rgb(217, 217, 217);
+
+    border-top-left-radius: 11px;
+    border-top-right-radius: 11px;
+    border-bottom-left-radius: 11px;
+    border-bottom-right-radius: 11px;
+}
+
+.progress-fill {
+    width: 0%;
+    height: 100%;
+    background-color: rgb(132, 196, 65);
+
+    border-top-left-radius: 11px;
+    border-top-right-radius: 11px;
+    border-bottom-left-radius: 11px;
+    border-bottom-right-radius: 11px;
+}
+
+.progress-percentage {
+    font-size: 32px;
+    color: rgb(75, 75, 75);
+}
+
+.primary-button {
+    width: 410px;
+    min-height: 78px;
+    align-self: center;
+    margin-bottom: 55px;
+
+    background-color: rgb(132, 196, 65);
+    color: rgb(255, 255, 255);
+    font-size: 36px;
+
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+
+    border-top-left-radius: 20px;
+    border-top-right-radius: 20px;
+    border-bottom-left-radius: 20px;
+    border-bottom-right-radius: 20px;
+
+    -unity-font-definition: url("project://database/Assets/Fonts/JosefinSans-Bold.ttf?fileID=12800000&guid=7dc48762b7bd51e4f9e17e6c8e143c5c&type=3#JosefinSans-Bold");
+}
+
+.panel-card {
+    padding-top: 32px;
+    padding-right: 32px;
+    padding-bottom: 32px;
+    padding-left: 32px;
+}
+
+.panel-title-row {
+    min-height: 70px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 22px;
+}
+
+.panel-title {
+    font-size: 48px;
+    color: rgb(25, 25, 25);
+}
+
+.status-label {
+    margin-bottom: 20px;
+    font-size: 32px;
+    color: rgb(119, 119, 119);
+    white-space: normal;
+    -unity-text-align: middle-center;
+}
+
+.leaderboard-header {
+    min-height: 70px;
+    flex-direction: row;
+    align-items: center;
+    background-color: rgb(239, 239, 239);
+
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-bottom-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+}
+
+.leaderboard-entries {
+    flex-direction: column;
+}
+
+.leaderboard-row {
+    min-height: 82px;
+    flex-direction: row;
+    align-items: center;
+
+    border-bottom-width: 1px;
+    border-bottom-color: rgb(220, 220, 220);
+}
+
+.leaderboard-row--current {
+    background-color: rgba(132, 196, 65, 0.14);
+}
+
+.rank-column {
+    width: 100px;
+    flex-shrink: 0;
+    -unity-text-align: middle-center;
+}
+
+.player-column {
+    flex-grow: 1;
+    min-width: 0;
+    padding-left: 15px;
+}
+
+.score-column {
+    width: 165px;
+    flex-shrink: 0;
+    -unity-text-align: middle-center;
+}
+
+.time-column {
+    width: 185px;
+    flex-shrink: 0;
+    -unity-text-align: middle-center;
+}
+
+.table-heading {
+    font-size: 30px;
+    color: rgb(80, 80, 80);
+}
+
+.table-value {
+    font-size: 34px;
+    color: rgb(35, 35, 35);
+}
+
+.empty-state {
+    min-height: 110px;
+    align-self: stretch;
+    justify-content: center;
+    font-size: 32px;
+    color: rgb(119, 119, 119);
+    -unity-text-align: middle-center;
+    white-space: normal;
+}
+
+.secondary-button {
+    min-width: 230px;
+    min-height: 60px;
+    background-color: rgba(0, 0, 0, 0);
+    color: rgb(132, 196, 65);
+    font-size: 34px;
+
+    border-left-width: 0;
+    border-right-width: 0;
+    border-top-width: 0;
+    border-bottom-width: 0;
+}
+
+.badges-content {
+    min-height: 130px;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+}

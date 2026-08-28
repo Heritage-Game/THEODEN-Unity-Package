@@ -41,7 +41,10 @@ namespace Theoden.Editor.POIDefinitionClasses
             //--> draw everything inside it recursively
             var field = new PropertyField(templateProperty);
             field.Bind(templateProperty.serializedObject);
-            parent.Add(field);
+            container.Add(field);
+
+            if (container.parent == null)
+                parent.Add(container);
             
             //MediaImagePicker.TryEnhance(container, templateProperty);
         }

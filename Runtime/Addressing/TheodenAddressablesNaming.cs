@@ -182,6 +182,40 @@ namespace Addressing
         }
 
         // ============================================================
+        // MAP
+        // ============================================================
+
+        /// <summary>
+        /// Returns the Addressables group used by the project map.
+        /// </summary>
+        public static string GetMapGroupName(string projectId)
+        {
+            return
+                $"THEODEN_{SanitizeAddressPart(projectId)}_Map";
+        }
+
+        /// <summary>
+        /// Returns the Addressables label associated with the project map.
+        /// </summary>
+        public static string GetMapLabel(string projectId)
+        {
+            return
+                $"theoden_{SanitizeAddressPart(projectId)}_map";
+        }
+
+        /// <summary>
+        /// Returns the unique Addressables address of the project
+        /// MapDefinition asset.
+        /// </summary>
+        public static string GetMapDefinitionAddress(string projectId)
+        {
+            string project =
+                SanitizeAddressPart(projectId);
+
+            return $"theoden/{project}/map/definition";
+        }
+        
+        // ============================================================
         // INTERNAL ROOTS
         // ============================================================
 

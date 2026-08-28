@@ -62,6 +62,7 @@ public class QRScannerView : MonoBehaviour
 
         root = uiDocument.rootVisualElement;
         BindUIElements();
+        EnsureLocalizationManager();
         SetupButtons();
 
         barcodeReader = new BarcodeReaderGeneric
@@ -86,6 +87,19 @@ public class QRScannerView : MonoBehaviour
 
         if (backButton != null)
             backButton.clicked -= OnBackClicked;
+    }
+
+    private void EnsureLocalizationManager()
+    {
+        if (LocalizationManager.Instance == null)
+        {
+            GameObject go = new GameObject("LocalizationManager");
+            LocalizationManager lm = go.AddComponent<LocalizationManager>();
+            DontDestroyOnLoad(go);
+            Debug.Log("[InstructionsPageManager] LocalizationManager created.");
+        }
+
+        LocalizationManager.Instance?.LoadLocalization();
     }
 
     private void Update()
@@ -131,13 +145,13 @@ public class QRScannerView : MonoBehaviour
 
     private IEnumerator InitCamera()
     {
-        SetStatus("Requesting camera permission...", Color.white);
+        SetStatus(LocalizationManager.Instance.GetText("status_requesting"), Color.white);
 
         yield return Application.RequestUserAuthorization(UserAuthorization.WebCam);
 
         if (!Application.HasUserAuthorization(UserAuthorization.WebCam))
         {
-            SetStatus("Camera permission denied!", Color.red);
+            SetStatus(LocalizationManager.Instance.GetText("status_denied"), Color.red);
             yield break;
         }
 
@@ -162,7 +176,7 @@ public class QRScannerView : MonoBehaviour
 
         if (devices == null || devices.Length == 0)
         {
-            SetStatus("No camera found!", Color.red);
+            SetStatus(LocalizationManager.Instance.GetText("status_not_found"), Color.red);
             Debug.LogError("[QRScannerView] No camera found.");
             return;
         }
@@ -208,7 +222,7 @@ public class QRScannerView : MonoBehaviour
             FixCameraRotationRawImage();
         }
 
-        SetStatus("Scanning QR Code...", Color.black);
+        SetStatus(LocalizationManager.Instance.GetText("status_scanning"), Color.black);
         isScanning = true;
     }
 
@@ -285,7 +299,7 @@ public class QRScannerView : MonoBehaviour
         if (string.IsNullOrEmpty(expectedPoiId))
         {
             Debug.LogError("[QRScanner] Cannot debug-load POI. Expected QR code is empty.");
-            SetStatus("Cannot load demo POI.", Color.red);
+            SetStatus(LocalizationManager.Instance.GetText("status_cannot_load"), Color.red);
             return;
         }
 
@@ -445,7 +459,7 @@ public class QRScannerView : MonoBehaviour
     {
         if (DataManager.Instance == null)
         {
-            SetStatus("DataManager missing!", Color.red);
+            SetStatus(LocalizationManager.Instance.GetText("status_datamanager_missing"), Color.red);
             isProcessingQr = false;
             yield break;
         }
@@ -455,7 +469,7 @@ public class QRScannerView : MonoBehaviour
         // be started directly from the Main Menu.
         if (DataManager.Instance.SelectedCodexItem == null)
         {
-            SetStatus("No selected level!", Color.red);
+            SetStatus(LocalizationManager.Instance.GetText("status_no_selected_level"), Color.red);
 
             Debug.LogError(
                 "[QRScanner] SelectedCodexItem is null."
@@ -471,7 +485,7 @@ public class QRScannerView : MonoBehaviour
         if (string.IsNullOrWhiteSpace(expectedPoiId))
         {
             SetStatus(
-                "Selected POI has no valid ID.",
+                LocalizationManager.Instance.GetText("status_no_valid_id"),
                 Color.red
             );
 
@@ -491,7 +505,7 @@ public class QRScannerView : MonoBehaviour
         if (!isCorrectQrCode)
         {
             SetStatus(
-                "Wrong QR Code!",
+                LocalizationManager.Instance.GetText("status_wrong_qr_code"),
                 new Color(0.9f, 0.3f, 0.3f)
             );
 
@@ -528,7 +542,7 @@ public class QRScannerView : MonoBehaviour
         if (!sessionReady)
         {
             SetStatus(
-                "Could not start challenge session.",
+                LocalizationManager.Instance.GetText("status_no_session"),
                 Color.red
             );
 
@@ -543,7 +557,7 @@ public class QRScannerView : MonoBehaviour
         }
 
         SetStatus(
-            "Correct QR Code! Loading...",
+            LocalizationManager.Instance.GetText("status_correct"),
             new Color(0.29f, 0.69f, 0.31f)
         );
 
@@ -564,7 +578,7 @@ public class QRScannerView : MonoBehaviour
             ChallengeSessionService.CancelSession();
 
             SetStatus(
-                "POI data could not be loaded.",
+                LocalizationManager.Instance.GetText("status_no_poi"),
                 Color.red
             );
 
@@ -590,7 +604,7 @@ public class QRScannerView : MonoBehaviour
             ChallengeSessionService.CancelSession();
 
             SetStatus(
-                "NavigationManager missing!",
+                LocalizationManager.Instance.GetText("status_no_navigation_manager"),
                 Color.red
             );
 
@@ -611,7 +625,7 @@ public class QRScannerView : MonoBehaviour
     {
         yield return new WaitForSeconds(2f);
 
-        SetStatus("Scanning QR Code...", Color.white);
+        SetStatus(LocalizationManager.Instance.GetText("status_scanning"), Color.white);
 
         isProcessingQr = false;
         isScanning = true;

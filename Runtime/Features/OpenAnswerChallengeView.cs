@@ -55,6 +55,7 @@ public class OpenAnswerChallengeView : MonoBehaviour
 
         root = uiDocument.rootVisualElement;
         BindUIElements();
+        EnsureLocalizationManager();
         SetupButtons();
         LoadAndDisplay();
     }
@@ -69,6 +70,19 @@ public class OpenAnswerChallengeView : MonoBehaviour
 
         if (hintButton != null)
             hintButton.clicked -= OnHintClicked;
+    }
+
+    private void EnsureLocalizationManager()
+    {
+        if (LocalizationManager.Instance == null)
+        {
+            GameObject go = new GameObject("LocalizationManager");
+            LocalizationManager lm = go.AddComponent<LocalizationManager>();
+            DontDestroyOnLoad(go);
+            Debug.Log("[InstructionsPageManager] LocalizationManager created.");
+        }
+
+        LocalizationManager.Instance?.LoadLocalization();
     }
 
     // ============================================================
@@ -127,6 +141,10 @@ public class OpenAnswerChallengeView : MonoBehaviour
         {
             submitButton.clicked -= OnSubmitClicked;
             submitButton.clicked += OnSubmitClicked;
+            if (LocalizationManager.Instance != null)
+            {
+                submitButton.text = LocalizationManager.Instance.GetText("submit_button");
+            }
         }
 
         if (backButton != null)
@@ -139,6 +157,10 @@ public class OpenAnswerChallengeView : MonoBehaviour
         {
             hintButton.clicked -= OnHintClicked;
             hintButton.clicked += OnHintClicked;
+            if (LocalizationManager.Instance != null)
+            {
+                hintButton.text = LocalizationManager.Instance.GetText("hint_button");
+            }
         }
 
         if (answerInput != null)

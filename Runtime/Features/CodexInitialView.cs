@@ -43,6 +43,7 @@ public class CodexInitialView : MonoBehaviour
 
         root = uiDocument.rootVisualElement;
         BindUIElements();
+        EnsureLocalizationManager();
         SetupButtons();
         LoadData();
     }
@@ -59,6 +60,19 @@ public class CodexInitialView : MonoBehaviour
     private void Update()
     {
         HandleSwipe();
+    }
+
+    private void EnsureLocalizationManager()
+    {
+        if (LocalizationManager.Instance == null)
+        {
+            GameObject go = new GameObject("LocalizationManager");
+            LocalizationManager lm = go.AddComponent<LocalizationManager>();
+            DontDestroyOnLoad(go);
+            Debug.Log("[InstructionsPageManager] LocalizationManager created.");
+        }
+
+        LocalizationManager.Instance?.LoadLocalization();
     }
 
     // ============================================================
@@ -90,6 +104,10 @@ public class CodexInitialView : MonoBehaviour
         {
             playButton.clicked -= OnPlayClicked;
             playButton.clicked += OnPlayClicked;
+            if (LocalizationManager.Instance != null)
+            {
+                playButton.text = LocalizationManager.Instance.GetText("play_button");
+            }
         }
     }
 

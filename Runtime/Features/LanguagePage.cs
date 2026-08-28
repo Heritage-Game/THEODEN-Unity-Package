@@ -32,6 +32,7 @@ public class LanguagePage : MonoBehaviour
 
         root = uiDocument.rootVisualElement;
         BindUIElements();
+        EnsureLocalizationManager();
 
         if (backButton != null)
         {
@@ -58,7 +59,7 @@ public class LanguagePage : MonoBehaviour
     private void BindUIElements()
     {
         buttonContainer = root.Q<VisualElement>("button_container");
-        titleLabel = root.Q<Label>("title_label");
+        titleLabel = root.Q<Label>("language_title");
         backButton = root.Q<Button>("back_button");
 
         if (buttonContainer == null) Debug.LogWarning("[LanguagePage] 'button_container' not found in UXML.");
@@ -66,6 +67,19 @@ public class LanguagePage : MonoBehaviour
         if (titleLabel == null) Debug.LogWarning("[LanguagePage] 'title_label' not found in UXML.");
 
         if (backButton == null) Debug.LogWarning("[LanguagePage] 'back_button' not found in UXML.");
+    }
+
+    private void EnsureLocalizationManager()
+    {
+        if (LocalizationManager.Instance == null)
+        {
+            GameObject go = new GameObject("LocalizationManager");
+            LocalizationManager lm = go.AddComponent<LocalizationManager>();
+            DontDestroyOnLoad(go);
+            Debug.Log("[InstructionsPageManager] LocalizationManager created.");
+        }
+
+        LocalizationManager.Instance?.LoadLocalization();
     }
 
     // ============================================================
@@ -89,6 +103,11 @@ public class LanguagePage : MonoBehaviour
         {
             Debug.LogError("[LanguagePage] LanguageManager instance is null.");
             return;
+        }
+
+        if (titleLabel != null)
+        {
+            titleLabel.text = LocalizationManager.Instance.GetText("language_title");
         }
 
         // clean container

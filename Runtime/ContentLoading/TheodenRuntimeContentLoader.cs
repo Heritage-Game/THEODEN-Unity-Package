@@ -341,5 +341,29 @@ namespace ContentLoading
                 );
             }
         }
+        
+        /// <summary>
+        /// Loads the active project's Addressable MapDefinition asset.
+        /// </summary>
+        public static async Task<MapDefinition> LoadMapDefinitionAsync()
+        {
+            string address =
+                TheodenAddressablesNaming.GetMapDefinitionAddress(
+                    ActiveProjectId
+                );
+
+            return await LoadAssetAsync<MapDefinition>(address);
+        }
+
+        /// <summary>
+        /// Releases an Addressable Unity asset previously returned by this loader.
+        /// </summary>
+        public static void ReleaseAsset<TAsset>(TAsset asset)
+            where TAsset : UnityEngine.Object
+        {
+            if (asset != null)
+                Addressables.Release(asset);
+        }
+
     }
 }

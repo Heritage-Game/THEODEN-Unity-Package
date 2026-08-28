@@ -29,6 +29,11 @@ public class TheodenProjectConfig : ScriptableObject
     [Header("POIs")]
     public POIRegistry poiRegistry;
     
+    [Header("Map")]
+    [Tooltip(
+        "Contains the map image and the normalized position of each POI pin."
+    )]
+    public MapDefinition mapDefinition;
     
     [Header("Folders")]
     public string configFolderPath;
@@ -49,5 +54,11 @@ public class TheodenProjectConfig : ScriptableObject
     public string applicationVersion = "1.0.0";
     [Min(1)]
     public int androidVersionCode = 1;
+    
+    [Header("Leaderboard")]
+    [Tooltip("Enables communication with the leaderboard service.")]
+    public bool useLeaderboard;
+    [Tooltip("Base URL of the Leaderboard API")]
+    public string leaderboardBaseUrl = "http://localhost:8000";
 
 }

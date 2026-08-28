@@ -267,6 +267,7 @@ public class TheodenSetupWizardWindow : EditorWindow
 
         POIRegistry poiRegistry = CreateOrLoadPOIRegistry(configPath);
         LanguageConfig languageConfig = CreateOrLoadLanguageConfig(configPath);
+        MapDefinition mapDefinition = CreateOrLoadMapDefinition(configPath);
         TheodenProjectConfig projectConfig = CreateOrLoadProjectConfig(configPath);
 
         ConfigureLanguageConfig(languageConfig);
@@ -280,14 +281,17 @@ public class TheodenSetupWizardWindow : EditorWindow
             mediaPath,
             qrCodesPath,
             poiRegistry,
-            languageConfig
+            languageConfig,
+            mapDefinition
         );
 
         CreatePOIFoldersAndRegisterPOIs(poisPath, poiRegistry);
 
         EditorUtility.SetDirty(poiRegistry);
         EditorUtility.SetDirty(languageConfig);
+        EditorUtility.SetDirty(mapDefinition);
         EditorUtility.SetDirty(projectConfig);
+        
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -444,6 +448,33 @@ public class TheodenSetupWizardWindow : EditorWindow
     }
 
     /// <summary>
+    /// Loads the project's map definition or creates it when it does not yet exist.
+    /// </summary>
+    /// <param name="configPath">
+    /// The Unity project-relative path of the configuration folder.
+    /// </param>
+    /// <returns>
+    /// The existing or newly created map definition.
+    /// </returns>
+    private MapDefinition CreateOrLoadMapDefinition(string configPath)
+    {
+        string assetPath = $"{configPath}/MapDefinition.asset";
+
+        MapDefinition existingMapDefinition =
+            AssetDatabase.LoadAssetAtPath<MapDefinition>(assetPath);
+
+        if (existingMapDefinition != null)
+        {
+            return existingMapDefinition;
+        }
+
+        MapDefinition mapDefinition = CreateInstance<MapDefinition>();
+        AssetDatabase.CreateAsset(mapDefinition, assetPath);
+
+        return mapDefinition;
+    }
+    
+    /// <summary>
     /// Loads the main THEODEN project configuration or creates it when it does not yet exist.
     /// </summary>
     /// <param name="configPath">The Unity project-relative path of the configuration folder.</param>
@@ -498,6 +529,7 @@ public class TheodenSetupWizardWindow : EditorWindow
     /// <param name="qrCodesPath">The path containing generated QR codes.</param>
     /// <param name="poiRegistry">The POI registry associated with the project.</param>
     /// <param name="languageConfig">The language configuration associated with the project.</param>
+    /// <param name="mapDefinition"> The map definition associated with the project.</param>
     private void ConfigureProjectConfig(
         TheodenProjectConfig projectConfig,
         string rootPath,
@@ -508,7 +540,8 @@ public class TheodenSetupWizardWindow : EditorWindow
         string mediaPath,
         string qrCodesPath,
         POIRegistry poiRegistry,
-        LanguageConfig languageConfig)
+        LanguageConfig languageConfig,
+        MapDefinition mapDefinition)
     {
         projectConfig.applicationName = applicationName;
         projectConfig.folderPath = rootPath;
@@ -523,6 +556,7 @@ public class TheodenSetupWizardWindow : EditorWindow
 
         projectConfig.languageConfig = languageConfig;
         projectConfig.poiRegistry = poiRegistry;
+        projectConfig.mapDefinition =  mapDefinition;
 
         projectConfig.configFolderPath = configPath;
         projectConfig.codexFolderPath = codexPath;

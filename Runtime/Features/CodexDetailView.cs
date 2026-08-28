@@ -31,6 +31,7 @@ public class CodexDetailView : MonoBehaviour
 
         root = uiDocument.rootVisualElement;
         BindUIElements();
+        EnsureLocalizationManager();
         SetupButtons();
         LoadSelectedDirectionsData();
     }
@@ -44,6 +45,19 @@ public class CodexDetailView : MonoBehaviour
             scanQRButton.clicked -= OnScanQRClicked;
     }
 
+    private void EnsureLocalizationManager()
+    {
+        if (LocalizationManager.Instance == null)
+        {
+            GameObject go = new GameObject("LocalizationManager");
+            LocalizationManager lm = go.AddComponent<LocalizationManager>();
+            DontDestroyOnLoad(go);
+            Debug.Log("[InstructionsPageManager] LocalizationManager created.");
+        }
+
+        LocalizationManager.Instance?.LoadLocalization();
+    }
+
     // ============================================================
     // UI BINDING
     // ============================================================
@@ -51,7 +65,7 @@ public class CodexDetailView : MonoBehaviour
     {
         logoContainer = root.Q<VisualElement>("logo_container");
         logoImage = root.Q<Image>("poi_image");
-        levelTitleText = root.Q<Label>("level_title_text");
+        levelTitleText = root.Q<Label>("title_label");
         directionsText = root.Q<Label>("directions_text");
         scanQRButton = root.Q<Button>("scan_qr_button");
         backButton = root.Q<Button>("back_button");
@@ -90,6 +104,10 @@ public class CodexDetailView : MonoBehaviour
         {
             scanQRButton.clicked -= OnScanQRClicked;
             scanQRButton.clicked += OnScanQRClicked;
+            if (LocalizationManager.Instance != null)
+            {
+                scanQRButton.text = LocalizationManager.Instance.GetText("scan_qr_button");
+            }
         }
     }
 

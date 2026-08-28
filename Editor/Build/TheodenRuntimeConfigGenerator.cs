@@ -6,8 +6,8 @@ using UnityEngine;
 namespace Theoden.Editor.Build
 {
     /// <summary>
-    /// Creates or updates the local configuration required by the
-    /// THEODEN runtime before Addressables content can be loaded.
+    /// Creates or updates the configuration required by the
+    /// THEODEN application at runtime.
     /// </summary>
     public static class TheodenRuntimeConfigGenerator
     {
@@ -19,7 +19,8 @@ namespace Theoden.Editor.Build
             "/TheodenRuntimeConfig.asset";
 
         /// <summary>
-        /// Generates the runtime configuration for the selected project.
+        /// Generates the runtime configuration for the
+        /// selected THEODEN project.
         /// </summary>
         public static bool CreateOrUpdate(
             TheodenProjectContext context,
@@ -29,38 +30,33 @@ namespace Theoden.Editor.Build
 
             if (context == null)
             {
-                error = "The THEODEN project context is null.";
+                error =
+                    "The THEODEN project context is null.";
+
                 return false;
             }
 
             if (context.theodenProjectConfig == null)
             {
-                error = "The selected project configuration is missing.";
+                error =
+                    "The selected project configuration is missing.";
+
                 return false;
             }
 
-            return CreateOrUpdate(
-                context.theodenProjectConfig,
-                out error
-            );
-        }
-
-        /// <summary>
-        /// Generates the runtime configuration from a project config.
-        /// </summary>
-        public static bool CreateOrUpdate(
-            TheodenProjectConfig projectConfig,
-            out string error)
-        {
-            error = null;
-
-            if (projectConfig == null)
+            if (context.poiRegistry == null)
             {
-                error = "The THEODEN project configuration is null.";
+                error =
+                    "The selected project's POIRegistry is missing.";
+
                 return false;
             }
 
-            string projectId = projectConfig.projectId?.Trim();
+            TheodenProjectConfig projectConfig =
+                context.theodenProjectConfig;
+
+            string projectId =
+                projectConfig.projectId?.Trim();
 
             if (string.IsNullOrWhiteSpace(projectId))
             {
@@ -69,6 +65,29 @@ namespace Theoden.Editor.Build
 
                 return false;
             }
+
+            bool useLeaderboard =
+                projectConfig.useLeaderboard;
+
+            string leaderboardBaseUrl =
+                projectConfig.leaderboardBaseUrl?.Trim();
+
+            if (useLeaderboard &&
+                !TryValidateLeaderboardUrl(
+                    leaderboardBaseUrl,
+                    out error))
+            {
+                return false;
+            }
+
+            if (!useLeaderboard)
+                leaderboardBaseUrl = string.Empty;
+            else
+                leaderboardBaseUrl =
+                    leaderboardBaseUrl.TrimEnd('/');
+
+            int totalPoiCount =
+                context.poiRegistry.Pois?.Count ?? 0;
 
             try
             {
@@ -96,7 +115,7 @@ namespace Theoden.Editor.Build
 
                 bool wasCreated = false;
 
-                if (runtimeConfig == null)
+                if (!runtimeConfig)
                 {
                     runtimeConfig =
                         ScriptableObject.CreateInstance<
@@ -113,21 +132,54 @@ namespace Theoden.Editor.Build
                 SerializedObject serializedConfig =
                     new SerializedObject(runtimeConfig);
 
-                SerializedProperty projectIdProperty =
-                    serializedConfig.FindProperty("projectId");
+                serializedConfig.Update();
 
-                if (projectIdProperty == null)
+                SerializedProperty projectIdProperty =
+                    serializedConfig.FindProperty(
+                        "projectId"
+                    );
+
+                SerializedProperty useLeaderboardProperty =
+                    serializedConfig.FindProperty(
+                        "useLeaderboard"
+                    );
+
+                SerializedProperty leaderboardBaseUrlProperty =
+                    serializedConfig.FindProperty(
+                        "leaderboardBaseUrl"
+                    );
+
+                SerializedProperty totalPoiCountProperty =
+                    serializedConfig.FindProperty(
+                        "totalPoiCount"
+                    );
+
+                if (projectIdProperty == null ||
+                    useLeaderboardProperty == null ||
+                    leaderboardBaseUrlProperty == null ||
+                    totalPoiCountProperty == null)
                 {
                     error =
-                        "Could not find the serialized projectId " +
-                        "field in TheodenRuntimeConfig.";
+                        "One or more serialized fields are missing " +
+                        "from TheodenRuntimeConfig.";
 
                     return false;
                 }
 
-                projectIdProperty.stringValue = projectId;
+                projectIdProperty.stringValue =
+                    projectId;
 
-                serializedConfig.ApplyModifiedPropertiesWithoutUndo();
+                useLeaderboardProperty.boolValue =
+                    useLeaderboard;
+
+                leaderboardBaseUrlProperty.stringValue =
+                    leaderboardBaseUrl;
+
+                totalPoiCountProperty.intValue =
+                    totalPoiCount;
+
+                serializedConfig
+                    .ApplyModifiedPropertiesWithoutUndo();
 
                 EditorUtility.SetDirty(runtimeConfig);
                 AssetDatabase.SaveAssets();
@@ -136,8 +188,11 @@ namespace Theoden.Editor.Build
                 Debug.Log(
                     $"[TheodenRuntimeConfigGenerator] Runtime config " +
                     $"{(wasCreated ? "created" : "updated")}: " +
-                    $"{RuntimeConfigAssetPath} | projectId: " +
-                    $"'{projectId}'"
+                    $"{RuntimeConfigAssetPath} | " +
+                    $"projectId: '{projectId}' | " +
+                    $"leaderboard: " +
+                    $"{(useLeaderboard ? "enabled" : "disabled")} | " +
+                    $"total POIs: {totalPoiCount}"
                 );
 
                 return true;
@@ -154,12 +209,50 @@ namespace Theoden.Editor.Build
             }
         }
 
+        private static bool TryValidateLeaderboardUrl(
+            string leaderboardBaseUrl,
+            out string error)
+        {
+            error = null;
+
+            if (string.IsNullOrWhiteSpace(
+                    leaderboardBaseUrl))
+            {
+                error =
+                    "The leaderboard is enabled, but its API " +
+                    "URL is empty.";
+
+                return false;
+            }
+
+            bool isValidUrl =
+                Uri.TryCreate(
+                    leaderboardBaseUrl,
+                    UriKind.Absolute,
+                    out Uri parsedUri
+                ) &&
+                (parsedUri.Scheme == Uri.UriSchemeHttp ||
+                 parsedUri.Scheme == Uri.UriSchemeHttps);
+
+            if (!isValidUrl)
+            {
+                error =
+                    "The leaderboard API URL must be a valid " +
+                    "absolute HTTP or HTTPS URL.";
+
+                return false;
+            }
+
+            return true;
+        }
+
         private static bool EnsureOutputFolder(
             out string error)
         {
             error = null;
 
-            if (!AssetDatabase.IsValidFolder("Assets/Resources"))
+            if (!AssetDatabase.IsValidFolder(
+                    "Assets/Resources"))
             {
                 string resourcesGuid =
                     AssetDatabase.CreateFolder(
@@ -185,7 +278,8 @@ namespace Theoden.Editor.Build
                         "THEODEN"
                     );
 
-                if (string.IsNullOrWhiteSpace(theodenFolderGuid))
+                if (string.IsNullOrWhiteSpace(
+                        theodenFolderGuid))
                 {
                     error =
                         $"Could not create " +

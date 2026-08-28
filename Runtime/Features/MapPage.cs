@@ -1,75 +1,246 @@
 using UnityEngine;
-using UnityEngine.UI;
+using UnityEngine.UIElements;
 using System.Collections;
+using System.Collections.Generic;
 
 public class MapPage : MonoBehaviour
 {
+    // ============================================================
+    // UI REFERENCES
+    // ============================================================
+    [Header("UI References")]
+    [SerializeField] private UIDocument uiDocument;
+
+    // Elementi UI Toolkit
+    private VisualElement root;
+    private VisualElement mapContainer;
+    private Image mapImage;
+    private Button btnExitMap;
+    private Button btnZoomIn;
+    private Button btnZoomOut;
+
+    // ============================================================
+    // MAP SETTINGS
+    // ============================================================
     [Header("Map Settings")]
-    [SerializeField] private RectTransform scrollView;
-    public RectTransform mapImage;
-    [SerializeField] float zoomFactor = 1.5f;
-    private const float MAXZOOM = 8;
-    private MapLocation[] pois;
+    [SerializeField] private float zoomFactor = 1.5f;
+    private const float MAXZOOM = 8f;
+    private float currentZoom = 1f;
 
-    [Header("Navigation Buttons")]
-    public Button btnExitMap; // Görseldeki "Exit navigation" butonunu buraya sürükle
+    // ============================================================
+    // POI REFERENCES
+    // ============================================================
+    private readonly List<MapLocation> pois = new List<MapLocation>();
 
-    void Start()
+    // ============================================================
+    // UNITY LIFECYCLE
+    // ============================================================
+    private void OnEnable()
     {
+        if (uiDocument == null)
+        {
+            Debug.LogError("[MapPage] UIDocument not assigned.");
+            return;
+        }
+
+        root = uiDocument.rootVisualElement;
+        BindUIElements();
+        SetupButtons();
         SetupMap();
         GetPois();
+    }
 
-        // Geri dön butonunu baðlama
+    private void OnDisable()
+    {
+        if (btnExitMap != null)
+            btnExitMap.clicked -= OnExitMapClicked;
+
+        if (btnZoomIn != null)
+            btnZoomIn.clicked -= OnZoomInClicked;
+
+        if (btnZoomOut != null)
+            btnZoomOut.clicked -= OnZoomOutClicked;
+    }
+
+    // ============================================================
+    // UI BINDING
+    // ============================================================
+    private void BindUIElements()
+    {
+        mapContainer = root.Q<VisualElement>("map_container");
+        mapImage = root.Q<Image>("map_image");
+        btnExitMap = root.Q<Button>("exit_map_button");
+        btnZoomIn = root.Q<Button>("zoom_in_button");
+        btnZoomOut = root.Q<Button>("zoom_out_button");
+
+        if (mapContainer == null)
+            Debug.LogWarning("[MapPage] 'map_container' not found in UXML.");
+
+        if (mapImage == null)
+            Debug.LogWarning("[MapPage] 'map_image' not found in UXML.");
+
+        if (btnExitMap == null)
+            Debug.LogWarning("[MapPage] 'exit_map_button' not found in UXML.");
+
+        if (btnZoomIn == null)
+            Debug.LogWarning("[MapPage] 'zoom_in_button' not found in UXML.");
+
+        if (btnZoomOut == null)
+            Debug.LogWarning("[MapPage] 'zoom_out_button' not found in UXML.");
+    }
+
+    // ============================================================
+    // SETUP
+    // ============================================================
+    private void SetupButtons()
+    {
         if (btnExitMap != null)
         {
-            btnExitMap.onClick.AddListener(() =>
-            {
-                NavigationManager.Instance.NavigateTo("MenuUIToolkit"); // Ana menü sahnenizin adý
-            });
+            btnExitMap.clicked -= OnExitMapClicked;
+            btnExitMap.clicked += OnExitMapClicked;
+        }
+
+        if (btnZoomIn != null)
+        {
+            btnZoomIn.clicked -= OnZoomInClicked;
+            btnZoomIn.clicked += OnZoomInClicked;
+        }
+
+        if (btnZoomOut != null)
+        {
+            btnZoomOut.clicked -= OnZoomOutClicked;
+            btnZoomOut.clicked += OnZoomOutClicked;
         }
     }
 
     private void SetupMap()
     {
-        mapImage.GetComponent<Image>().SetNativeSize();
+        if (mapImage == null || mapContainer == null)
+            return;
 
-        float imageRatio = mapImage.rect.width / mapImage.rect.height;
-        float scrollViewRatio = scrollView.rect.width / scrollView.rect.height;
+        // reset zoom
+        currentZoom = 1f;
+        mapImage.style.scale = new Scale(Vector3.one);
+        mapImage.style.transformOrigin = new TransformOrigin(0, 0, 0);
 
-        mapImage.sizeDelta =
-            imageRatio > scrollViewRatio ?
-                new Vector2(scrollView.rect.width, scrollView.rect.width / imageRatio)
-                : new Vector2(scrollView.rect.height * imageRatio, scrollView.rect.height);
+        Texture2D mapTexture = Resources.Load<Texture2D>("Images/archaeopark map");
 
-        mapImage.anchoredPosition = Vector2.zero;
+        if (mapTexture != null)
+        {
+            mapImage.image = mapTexture;
+            mapImage.scaleMode = ScaleMode.ScaleToFit;
+            mapImage.style.width = new Length(100, LengthUnit.Percent);
+            mapImage.style.height = new Length(100, LengthUnit.Percent);
+            mapImage.style.alignSelf = Align.Center;
+            Debug.Log("[MapPage] Map image loaded successfully.");
+        }
+        else
+        {
+            Debug.LogError("[MapPage] Failed to load map image from Resources/Images/archaeopark map");
+        }
+
+        Debug.Log("[MapPage] Map setup complete.");
     }
 
     private void GetPois()
     {
-        pois = mapImage.GetComponentsInChildren<MapLocation>();
+        pois.Clear();
+
+        if (mapImage == null)
+            return;
+
+        var locationElements = mapImage.Query<VisualElement>(className: "map-location").ToList();
+
+        foreach (var element in locationElements)
+        {
+            // Se hai un componente MapLocation associato al VisualElement
+            // MapLocation mapLocation = element.userData as MapLocation;
+            // if (mapLocation != null) pois.Add(mapLocation);
+        }
+
+        // Invece, se MapLocation è un MonoBehaviour su GameObject separati,
+        // cerca nella scena i componenti MapLocation
+        MapLocation[] foundLocations = FindObjectsOfType<MapLocation>();
+        foreach (var location in foundLocations)
+        {
+            pois.Add(location);
+        }
+
+        Debug.Log($"[MapPage] Found {pois.Count} POIs.");
     }
 
+    // ============================================================
+    // ZOOM FUNCTIONS
+    // ============================================================
     public void ZoomInMap()
     {
-        if (mapImage.localScale.x * zoomFactor > MAXZOOM) return;
+        if (currentZoom * zoomFactor > MAXZOOM)
+        {
+            Debug.Log("[MapPage] Max zoom reached.");
+            return;
+        }
 
-        mapImage.localScale *= zoomFactor;
+        currentZoom *= zoomFactor;
+        ApplyZoom();
         UpdateAllPois();
+        Debug.Log($"[MapPage] Zoom in: {currentZoom}");
     }
 
     public void ZoomOutMap()
     {
-        if (mapImage.localScale.x / zoomFactor < 1) return;
+        if (currentZoom / zoomFactor < 1f)
+        {
+            Debug.Log("[MapPage] Min zoom reached.");
+            return;
+        }
 
-        mapImage.localScale /= zoomFactor;
+        currentZoom /= zoomFactor;
+        ApplyZoom();
         UpdateAllPois();
+        Debug.Log($"[MapPage] Zoom out: {currentZoom}");
+    }
+
+    private void ApplyZoom()
+    {
+        if (mapImage == null)
+            return;
+
+        mapImage.style.scale = new Scale(new Vector3(currentZoom, currentZoom, 1f));
+        mapImage.style.transformOrigin = new TransformOrigin(0, 0, 0);
     }
 
     private void UpdateAllPois()
     {
-        for (int i = 0; i < pois.Length; i++)
+        foreach (var poi in pois)
         {
-            pois[i].UpdateUi();
+            if (poi != null)
+                poi.UpdateUi();
         }
+    }
+
+    // ============================================================
+    // BUTTON HANDLERS
+    // ============================================================
+    private void OnExitMapClicked()
+    {
+        Debug.Log("[MapPage] Exit map clicked.");
+
+        if (NavigationManager.Instance == null)
+        {
+            Debug.LogError("[MapPage] NavigationManager missing.");
+            return;
+        }
+
+        NavigationManager.Instance.NavigateTo("MenuUIToolkit");
+    }
+
+    private void OnZoomInClicked()
+    {
+        ZoomInMap();
+    }
+
+    private void OnZoomOutClicked()
+    {
+        ZoomOutMap();
     }
 }

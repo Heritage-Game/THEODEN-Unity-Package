@@ -1,0 +1,8 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
+    <ui:Template name="header" src="project://database/Assets/header.uxml?fileID=9197481963319205126&amp;guid=8d0a7c03a2f6983458713eb0db140bab&amp;type=3#header" />
+    <ui:Instance template="header" name="header_template" />
+    <ui:VisualElement name="body" style="flex-grow: 1; position: absolute; left: 0; top: 260px; height: 1661px; width: 1080px; background-color: rgb(247, 247, 247); font-size: 50px; color: rgb(255, 255, 255);">
+        <ui:Label text="Select language" name="language_title" triple-click-selects-line="false" style="font-size: 96px; -unity-text-align: upper-center; top: 69px; color: rgb(0, 0, 0); -unity-font-definition: url(&quot;project://database/Assets/Fonts/JosefinSans-Regular.ttf?fileID=12800000&amp;guid=ad61ec3515071bb4796d97d4d4954cbd&amp;type=3#JosefinSans-Regular&quot;);" />
+        <ui:VisualElement name="button_container" style="flex-grow: 1; top: 250px; position: absolute; width: 900px; justify-content: flex-start; align-self: center; height: 1200px;" />
+    </ui:VisualElement>
+</ui:UXML>

@@ -1,78 +1,143 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using Addressing;
-using Theoden.Editor.Export;
 using RuntimeModelsForEditor;
+using Theoden.Editor.Export;
+using Theoden.Editor.Import;
 using UnityEditor;
 using UnityEditorInternal;
 using UnityEngine;
 
+/// <summary>
+/// Editor window used to create new localized Directions definitions and edit
+/// Directions JSON files that were previously exported by THEODEN.
+/// </summary>
 public class DirectionsToPOICreatorWindow : EditorWindow
 {
+    /// <summary>
+    /// Represents the operation currently performed by the window.
+    /// </summary>
+    private enum DirectionsEditorMode
+    {
+        None,
+        Create,
+        Edit
+    }
+
     [SerializeField]
     private DirectionsToPOIData data = new DirectionsToPOIData();
 
     private SerializedObject _serializedObject;
+    private SerializedProperty _descriptionProperty;
     private SerializedProperty _imageListProperty;
     private SerializedProperty _audioDescriptionProperty;
-
     private ReorderableList _imageList;
 
     private DefaultAsset _projectFolder;
     private TheodenProjectContext _projectContext;
-
     private int _selectedPoiIndex;
     private int _selectedLanguageIndex;
 
-    [MenuItem("THEODEN/3.Create Directions To POI")]
+    private DirectionsEditorMode _mode;
+    private string _loadedJsonAssetPath;
+    private bool _hasUnsavedChanges;
+
+    /// <summary>
+    /// Opens the Directions definition editor.
+    /// </summary>
+    [MenuItem("THEODEN/3.Create or Edit Directions To POI")]
     public static void ShowWindow()
     {
-        GetWindow<DirectionsToPOICreatorWindow>("Create Directions To POI");
+        GetWindow<DirectionsToPOICreatorWindow>(
+            "Directions To POI"
+        );
     }
 
     private void OnEnable()
     {
-        if (data == null)
-            data = new DirectionsToPOIData();
+        data ??= new DirectionsToPOIData();
+        data.images ??= new List<Sprite>();
+        data.description ??= string.Empty;
 
-        _serializedObject = new SerializedObject(this);
-
-        _imageListProperty = _serializedObject.FindProperty("data.images");
-        _audioDescriptionProperty = _serializedObject.FindProperty("data.audioDescription");
-
-        BuildImageList();
+        InitializeSerializedState();
     }
 
     private void OnGUI()
     {
         if (_serializedObject == null)
-            return;
+            InitializeSerializedState();
 
         _serializedObject.Update();
 
-        GUILayout.Label("Directions To POI", EditorStyles.boldLabel);
+        GUILayout.Label(
+            "Directions To POI",
+            EditorStyles.boldLabel
+        );
         EditorGUILayout.Space();
 
         DrawProjectFolderField();
         EditorGUILayout.Space();
 
         DrawProjectContextFields();
-        EditorGUILayout.Space();
 
-        DrawSelectedPoiInfo();
-        EditorGUILayout.Space();
+        if (HasValidDefinitionSelection())
+        {
+            EditorGUILayout.Space();
+            DrawSelectedPoiInfo();
+            EditorGUILayout.Space();
+            DrawDefinitionStatusAndModeActions();
+        }
 
-        DrawDescriptionField();
-        EditorGUILayout.Space();
+        bool contentChanged = false;
 
-        DrawImageList();
-        EditorGUILayout.Space();
+        if (_mode != DirectionsEditorMode.None)
+        {
+            EditorGUILayout.Space();
 
-        DrawAudioDescriptionField();
-        EditorGUILayout.Space();
+            EditorGUI.BeginChangeCheck();
+            DrawDescriptionField();
+            EditorGUILayout.Space();
+            DrawImageList();
+            EditorGUILayout.Space();
+            DrawAudioDescriptionField();
+            contentChanged = EditorGUI.EndChangeCheck();
+        }
 
-        DrawExportButton();
+        bool serializedDataChanged =
+            _serializedObject.ApplyModifiedProperties();
 
-        _serializedObject.ApplyModifiedProperties();
+        if (_mode != DirectionsEditorMode.None &&
+            (contentChanged || serializedDataChanged))
+        {
+            _hasUnsavedChanges = true;
+        }
+
+        if (_mode != DirectionsEditorMode.None)
+        {
+            EditorGUILayout.Space();
+            DrawEditingActions();
+        }
+    }
+
+    #region Serialized Data and Reorderable List
+
+    /// <summary>
+    /// Rebuilds the SerializedObject and cached properties after the entire
+    /// Directions data instance has been replaced by a new or loaded model.
+    /// </summary>
+    private void InitializeSerializedState()
+    {
+        _serializedObject = new SerializedObject(this);
+        _descriptionProperty =
+            _serializedObject.FindProperty("data.description");
+        _imageListProperty =
+            _serializedObject.FindProperty("data.images");
+        _audioDescriptionProperty =
+            _serializedObject.FindProperty("data.audioDescription");
+
+        BuildImageList();
+        _serializedObject.Update();
     }
 
     private void BuildImageList()
@@ -93,25 +158,38 @@ public class DirectionsToPOICreatorWindow : EditorWindow
 
         _imageList.elementHeight = 70;
 
-        _imageList.drawElementCallback = (rect, index, isActive, isFocused) =>
+        _imageList.drawElementCallback =
+            (rect, index, isActive, isFocused) =>
+            {
+                DrawImageListElement(rect, index);
+            };
+
+        _imageList.onChangedCallback = _ =>
         {
-            DrawImageListElement(rect, index);
+            if (_mode != DirectionsEditorMode.None)
+                _hasUnsavedChanges = true;
         };
     }
 
     private void DrawImageListElement(Rect rect, int index)
     {
-        SerializedProperty element = _imageListProperty.GetArrayElementAtIndex(index);
+        SerializedProperty element =
+            _imageListProperty.GetArrayElementAtIndex(index);
 
         rect.y += 5;
-        float previewSize = 60;
+        const float previewSize = 60;
 
         Sprite sprite = element.objectReferenceValue as Sprite;
 
         if (sprite != null && sprite.texture != null)
         {
             DrawSpritePreview(
-                new Rect(rect.x, rect.y, previewSize, previewSize),
+                new Rect(
+                    rect.x,
+                    rect.y,
+                    previewSize,
+                    previewSize
+                ),
                 sprite
             );
         }
@@ -128,7 +206,7 @@ public class DirectionsToPOICreatorWindow : EditorWindow
         );
     }
 
-    private void DrawSpritePreview(Rect rect, Sprite sprite)
+    private static void DrawSpritePreview(Rect rect, Sprite sprite)
     {
         Rect textureRect = sprite.textureRect;
         Texture2D texture = sprite.texture;
@@ -140,22 +218,37 @@ public class DirectionsToPOICreatorWindow : EditorWindow
             textureRect.height / texture.height
         );
 
-        GUI.DrawTextureWithTexCoords(rect, texture, uv, true);
+        GUI.DrawTextureWithTexCoords(
+            rect,
+            texture,
+            uv,
+            true
+        );
     }
+
+    #endregion
+
+    #region Project and Definition Selection
 
     private void DrawProjectFolderField()
     {
-        EditorGUI.BeginChangeCheck();
+        DefaultAsset newProjectFolder =
+            (DefaultAsset)EditorGUILayout.ObjectField(
+                "Project Folder",
+                _projectFolder,
+                typeof(DefaultAsset),
+                false
+            );
 
-        _projectFolder = (DefaultAsset)EditorGUILayout.ObjectField(
-            "Project Folder",
-            _projectFolder,
-            typeof(DefaultAsset),
-            false
-        );
+        if (newProjectFolder == _projectFolder)
+            return;
 
-        if (EditorGUI.EndChangeCheck())
-            LoadProjectContext();
+        if (!ConfirmDiscardUnsavedChanges())
+            return;
+
+        EndEditingSession();
+        _projectFolder = newProjectFolder;
+        LoadProjectContext();
     }
 
     private void LoadProjectContext()
@@ -167,11 +260,16 @@ public class DirectionsToPOICreatorWindow : EditorWindow
         if (_projectFolder == null)
             return;
 
-        string projectFolderPath = AssetDatabase.GetAssetPath(_projectFolder);
+        string projectFolderPath =
+            AssetDatabase.GetAssetPath(_projectFolder);
 
         if (!AssetDatabase.IsValidFolder(projectFolderPath))
         {
-            Debug.LogError($"Selected asset is not a valid folder: {projectFolderPath}");
+            Debug.LogError(
+                $"Selected asset is not a valid folder: " +
+                projectFolderPath
+            );
+
             _projectFolder = null;
             return;
         }
@@ -182,7 +280,14 @@ public class DirectionsToPOICreatorWindow : EditorWindow
                 out string error))
         {
             Debug.LogError(error);
+            EditorUtility.DisplayDialog(
+                "Invalid THEODEN Project",
+                error,
+                "OK"
+            );
+
             _projectContext = null;
+            _projectFolder = null;
         }
     }
 
@@ -191,9 +296,11 @@ public class DirectionsToPOICreatorWindow : EditorWindow
         if (_projectContext == null || !_projectContext.IsValid)
         {
             EditorGUILayout.HelpBox(
-                "Select a valid THEODEN project folder to choose POI and language.",
+                "Select a valid THEODEN project folder to choose " +
+                "a POI and language.",
                 MessageType.Info
             );
+
             return;
         }
 
@@ -207,9 +314,11 @@ public class DirectionsToPOICreatorWindow : EditorWindow
             _projectContext.availablePois.Count == 0)
         {
             EditorGUILayout.HelpBox(
-                "No POIs found in the selected project configuration.",
+                "No POIs were found in the selected project " +
+                "configuration.",
                 MessageType.Warning
             );
+
             return;
         }
 
@@ -217,11 +326,20 @@ public class DirectionsToPOICreatorWindow : EditorWindow
             .Select(poi => $"{poi.DisplayName} ({poi.PoiId})")
             .ToArray();
 
-        _selectedPoiIndex = EditorGUILayout.Popup(
+        int newPoiIndex = EditorGUILayout.Popup(
             "Point of Interest",
             _selectedPoiIndex,
             poiOptions
         );
+
+        if (newPoiIndex == _selectedPoiIndex)
+            return;
+
+        if (!ConfirmDiscardUnsavedChanges())
+            return;
+
+        _selectedPoiIndex = newPoiIndex;
+        EndEditingSession();
     }
 
     private void DrawLanguageDropdown()
@@ -230,47 +348,260 @@ public class DirectionsToPOICreatorWindow : EditorWindow
             _projectContext.availableLanguages.Count == 0)
         {
             EditorGUILayout.HelpBox(
-                "No languages found in the selected project configuration.",
+                "No languages were found in the selected project " +
+                "configuration.",
                 MessageType.Warning
             );
+
             return;
         }
 
-        string[] languageOptions = _projectContext.availableLanguages
-            .Select(language => language.displayedName)
-            .ToArray();
+        string[] languageOptions =
+            _projectContext.availableLanguages
+                .Select(language => language.displayedName)
+                .ToArray();
 
-        _selectedLanguageIndex = EditorGUILayout.Popup(
+        int newLanguageIndex = EditorGUILayout.Popup(
             "Language",
             _selectedLanguageIndex,
             languageOptions
         );
+
+        if (newLanguageIndex == _selectedLanguageIndex)
+            return;
+
+        if (!ConfirmDiscardUnsavedChanges())
+            return;
+
+        _selectedLanguageIndex = newLanguageIndex;
+        EndEditingSession();
     }
 
     private void DrawSelectedPoiInfo()
     {
-        if (_projectContext == null ||
-            _projectContext.availablePois == null ||
-            _selectedPoiIndex < 0 ||
-            _selectedPoiIndex >= _projectContext.availablePois.Count)
-        {
-            return;
-        }
-
-        var selectedPoi = _projectContext.availablePois[_selectedPoiIndex];
+        var selectedPoi =
+            _projectContext.availablePois[_selectedPoiIndex];
 
         EditorGUILayout.HelpBox(
-            $"Selected POI:\nName: {selectedPoi.DisplayName}\nID: {selectedPoi.PoiId}",
+            $"Selected POI:\n" +
+            $"Name: {selectedPoi.DisplayName}\n" +
+            $"ID: {selectedPoi.PoiId}",
             MessageType.None
         );
     }
+
+    #endregion
+
+    #region Create and Edit Workflow
+
+    private void DrawDefinitionStatusAndModeActions()
+    {
+        bool fileExists = SelectedDefinitionExists();
+        string jsonAssetPath = GetSelectedJsonAssetPath();
+
+        if (_mode == DirectionsEditorMode.None)
+        {
+            EditorGUILayout.HelpBox(
+                fileExists
+                    ? "Existing Directions definition found:\n" +
+                      jsonAssetPath
+                    : "No Directions definition exists for the " +
+                      "selected POI and language. A new one can be " +
+                      "created at:\n" + jsonAssetPath,
+                MessageType.Info
+            );
+
+            EditorGUILayout.BeginHorizontal();
+
+            EditorGUI.BeginDisabledGroup(fileExists);
+            if (GUILayout.Button("Create New"))
+                StartCreateSession();
+            EditorGUI.EndDisabledGroup();
+
+            EditorGUI.BeginDisabledGroup(!fileExists);
+            if (GUILayout.Button("Load Existing"))
+                LoadSelectedDefinition();
+            EditorGUI.EndDisabledGroup();
+
+            EditorGUILayout.EndHorizontal();
+            return;
+        }
+
+        string unsavedMessage = _hasUnsavedChanges
+            ? "\nThere are unsaved changes."
+            : string.Empty;
+
+        if (_mode == DirectionsEditorMode.Create)
+        {
+            EditorGUILayout.HelpBox(
+                fileExists
+                    ? "The target JSON was created externally. Close " +
+                      "this definition and load the existing file."
+                    : "Create mode. A new Directions definition will " +
+                      $"be written to:\n{jsonAssetPath}" +
+                      unsavedMessage,
+                fileExists ? MessageType.Error : MessageType.Info
+            );
+        }
+        else
+        {
+            EditorGUILayout.HelpBox(
+                fileExists
+                    ? "Edit mode. The existing Directions definition " +
+                      $"was loaded from:\n{jsonAssetPath}" +
+                      unsavedMessage
+                    : "The Directions JSON being edited is no longer " +
+                      "available on disk.",
+                fileExists ? MessageType.Info : MessageType.Error
+            );
+        }
+    }
+
+    /// <summary>
+    /// Starts a creation session for the selected POI and language.
+    /// Existing JSON files cannot be overwritten from this mode.
+    /// </summary>
+    private void StartCreateSession()
+    {
+        if (!HasValidDefinitionSelection())
+            return;
+
+        if (SelectedDefinitionExists())
+        {
+            EditorUtility.DisplayDialog(
+                "Definition Already Exists",
+                "A Directions definition already exists for the " +
+                "selected POI and language. Load it to make changes.",
+                "OK"
+            );
+
+            return;
+        }
+
+        _mode = DirectionsEditorMode.Create;
+        _loadedJsonAssetPath = null;
+        _hasUnsavedChanges = false;
+
+        ReplaceData(new DirectionsToPOIData());
+    }
+
+    /// <summary>
+    /// Loads the selected Directions JSON and restores all editor-side asset
+    /// references from their Addressables addresses.
+    /// </summary>
+    private void LoadSelectedDefinition()
+    {
+        if (!HasValidDefinitionSelection())
+            return;
+
+        string jsonAssetPath = GetSelectedJsonAssetPath();
+        var selectedPoi =
+            _projectContext.availablePois[_selectedPoiIndex];
+
+        if (!DirectionsDefinitionLoadService.TryLoad(
+                jsonAssetPath,
+                selectedPoi.PoiId,
+                out DirectionsToPOIData loadedData,
+                out string error))
+        {
+            Debug.LogError(error);
+            EditorUtility.DisplayDialog(
+                "Load Failed",
+                error,
+                "OK"
+            );
+
+            return;
+        }
+
+        _mode = DirectionsEditorMode.Edit;
+        _loadedJsonAssetPath = jsonAssetPath;
+        _hasUnsavedChanges = false;
+
+        ReplaceData(loadedData);
+    }
+
+    private void DrawEditingActions()
+    {
+        bool canSave = CanSaveCurrentDefinition();
+
+        EditorGUILayout.BeginHorizontal();
+
+        EditorGUI.BeginDisabledGroup(!canSave);
+
+        string saveButtonText =
+            _mode == DirectionsEditorMode.Create
+                ? "Create JSON"
+                : "Save Changes";
+
+        if (GUILayout.Button(saveButtonText))
+            SaveCurrentDefinition();
+
+        EditorGUI.EndDisabledGroup();
+
+        string closeButtonText = _hasUnsavedChanges
+            ? "Discard Changes"
+            : "Close Definition";
+
+        if (GUILayout.Button(closeButtonText) &&
+            ConfirmDiscardUnsavedChanges())
+        {
+            EndEditingSession();
+        }
+
+        EditorGUILayout.EndHorizontal();
+    }
+
+    /// <summary>
+    /// Clears the open definition while preserving project, POI, and language
+    /// selections.
+    /// </summary>
+    private void EndEditingSession()
+    {
+        _mode = DirectionsEditorMode.None;
+        _loadedJsonAssetPath = null;
+        _hasUnsavedChanges = false;
+
+        ReplaceData(new DirectionsToPOIData());
+    }
+
+    private void ReplaceData(DirectionsToPOIData replacement)
+    {
+        data = replacement ?? new DirectionsToPOIData();
+        data.images ??= new List<Sprite>();
+        data.description ??= string.Empty;
+
+        InitializeSerializedState();
+        Repaint();
+    }
+
+    /// <summary>
+    /// Warns the user before an operation discards edited Directions values.
+    /// </summary>
+    private bool ConfirmDiscardUnsavedChanges()
+    {
+        if (!_hasUnsavedChanges)
+            return true;
+
+        return EditorUtility.DisplayDialog(
+            "Unsaved Changes",
+            "The current Directions definition contains unsaved " +
+            "changes. Do you want to discard them?",
+            "Discard",
+            "Cancel"
+        );
+    }
+
+    #endregion
+
+    #region Directions Form
 
     private void DrawDescriptionField()
     {
         GUILayout.Label("Description", EditorStyles.boldLabel);
 
-        data.description = EditorGUILayout.TextArea(
-            data.description,
+        _descriptionProperty.stringValue = EditorGUILayout.TextArea(
+            _descriptionProperty.stringValue,
             GUILayout.Height(150)
         );
     }
@@ -280,7 +611,8 @@ public class DirectionsToPOICreatorWindow : EditorWindow
         GUILayout.Label("Optional Images", EditorStyles.boldLabel);
 
         EditorGUILayout.HelpBox(
-            "Images are optional. Selected sprites must be inside the project Media folder.",
+            "Images are optional. Selected sprites must be inside the " +
+            "project Media folder.",
             MessageType.Info
         );
 
@@ -289,10 +621,14 @@ public class DirectionsToPOICreatorWindow : EditorWindow
 
     private void DrawAudioDescriptionField()
     {
-        GUILayout.Label("Optional Audio Description", EditorStyles.boldLabel);
+        GUILayout.Label(
+            "Optional Audio Description",
+            EditorStyles.boldLabel
+        );
 
         EditorGUILayout.HelpBox(
-            "Audio description is optional. The selected audio clip must be inside the project Media folder.",
+            "The audio description is optional. The selected audio " +
+            "clip must be inside the project Media folder.",
             MessageType.Info
         );
 
@@ -302,93 +638,85 @@ public class DirectionsToPOICreatorWindow : EditorWindow
         );
     }
 
-    private void DrawExportButton()
+    #endregion
+
+    #region Save and Validation
+
+    /// <summary>
+    /// Creates or updates the selected Directions JSON through the central
+    /// Directions export service.
+    /// </summary>
+    private void SaveCurrentDefinition()
     {
-        EditorGUI.BeginDisabledGroup(!CanExport());
-
-        if (GUILayout.Button("Export JSON"))
-            ExportJson();
-
-        EditorGUI.EndDisabledGroup();
-    }
-
-    private bool CanExport()
-    {
-        if (_projectContext == null || !_projectContext.IsValid)
-            return false;
-
-        if (_projectContext.availablePois == null ||
-            _selectedPoiIndex < 0 ||
-            _selectedPoiIndex >= _projectContext.availablePois.Count)
-            return false;
-
-        if (_projectContext.availableLanguages == null ||
-            _selectedLanguageIndex < 0 ||
-            _selectedLanguageIndex >= _projectContext.availableLanguages.Count)
-            return false;
-
-        if (string.IsNullOrWhiteSpace(_projectContext.directionsFolderPath) ||
-            !_projectContext.directionsFolderPath.StartsWith("Assets"))
-            return false;
-
-        if (string.IsNullOrWhiteSpace(_projectContext.mediaFolderPath) ||
-            !_projectContext.mediaFolderPath.StartsWith("Assets"))
-            return false;
-
-        return true;
-    }
-
-    private void ExportJson()
-    {
-        _serializedObject.ApplyModifiedProperties();
-
-        if (!CanExport())
+        if (!CanSaveCurrentDefinition())
         {
             EditorUtility.DisplayDialog(
-                "Export Failed",
-                "Cannot export directions. Check project folder, POI, language, Directions folder and Media folder.",
+                "Save Failed",
+                "Cannot save Directions. Check the project, POI, " +
+                "language, Directions folder, Media folder, and target " +
+                "JSON file.",
                 "OK"
             );
+
             return;
         }
 
-        var selectedPoi = _projectContext.availablePois[_selectedPoiIndex];
-        var selectedLanguageData = _projectContext.availableLanguages[_selectedLanguageIndex];
+        _serializedObject.ApplyModifiedProperties();
+
+        string selectedJsonAssetPath = GetSelectedJsonAssetPath();
+        bool fileExists = SelectedDefinitionExists();
+
+        if (_mode == DirectionsEditorMode.Create && fileExists)
+        {
+            EditorUtility.DisplayDialog(
+                "Creation Conflict",
+                "The target JSON now exists. Close this definition and " +
+                "load the existing file before making changes.",
+                "OK"
+            );
+
+            return;
+        }
+
+        if (_mode == DirectionsEditorMode.Edit &&
+            (!fileExists ||
+             !string.Equals(
+                 selectedJsonAssetPath,
+                 _loadedJsonAssetPath,
+                 StringComparison.Ordinal)))
+        {
+            EditorUtility.DisplayDialog(
+                "Invalid Edit Target",
+                "The original Directions JSON is no longer available " +
+                "at the expected path. The file was not saved.",
+                "OK"
+            );
+
+            return;
+        }
+
+        var selectedPoi =
+            _projectContext.availablePois[_selectedPoiIndex];
+        var selectedLanguage =
+            _projectContext.availableLanguages[_selectedLanguageIndex];
 
         string poiId = selectedPoi.PoiId;
         string poiName = selectedPoi.DisplayName;
-        LanguageList language = selectedLanguageData.language;
-        string projectId =
-            _projectContext.projectId;
-        
-        if (string.IsNullOrWhiteSpace(projectId))
-        {
-            EditorUtility.DisplayDialog(
-                "Export Failed",
-                "The selected THEODEN project has no valid project id.",
-                "OK"
-            );
-
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(poiId))
-        {
-            EditorUtility.DisplayDialog(
-                "Export Failed",
-                "Selected POI has no valid ID.",
-                "OK"
-            );
-            return;
-        }
+        LanguageList language = selectedLanguage.language;
+        string projectId = _projectContext.projectId;
 
         data.poiId = poiId;
         data.poiName = poiName;
 
-        string fileName = TheodenFileNaming.GetDirectionsJsonFileName(
-            poiId,
-            language
-        );
+        _serializedObject.Update();
+
+        string fileName =
+            TheodenFileNaming.GetDirectionsJsonFileName(
+                poiId,
+                language
+            );
+
+        bool wasCreated = _mode == DirectionsEditorMode.Create;
 
         if (!DirectionsExportService.ExportDirections(
                 data,
@@ -401,9 +729,8 @@ public class DirectionsToPOICreatorWindow : EditorWindow
                 out string error))
         {
             Debug.LogError(error);
-
             EditorUtility.DisplayDialog(
-                "Export Failed",
+                "Save Failed",
                 error,
                 "OK"
             );
@@ -411,12 +738,125 @@ public class DirectionsToPOICreatorWindow : EditorWindow
             return;
         }
 
-        Debug.Log($"Directions exported successfully for POI '{poiId}'.");
+        _mode = DirectionsEditorMode.Edit;
+        _loadedJsonAssetPath = selectedJsonAssetPath;
+        _hasUnsavedChanges = false;
+
+        string operation = wasCreated ? "created" : "updated";
+
+        Debug.Log(
+            $"Directions definition '{selectedJsonAssetPath}' " +
+            $"{operation}."
+        );
 
         EditorUtility.DisplayDialog(
             "Success",
-            $"Directions JSON exported successfully for POI '{poiName}'.",
+            $"The Directions definition for '{poiName}' was " +
+            $"successfully {operation}.",
             "OK"
         );
     }
+
+    private bool CanSaveCurrentDefinition()
+    {
+        if (_mode == DirectionsEditorMode.None ||
+            !HasValidDefinitionSelection())
+        {
+            return false;
+        }
+
+        if (!IsAssetPath(_projectContext.directionsFolderPath) ||
+            !IsAssetPath(_projectContext.mediaFolderPath) ||
+            string.IsNullOrWhiteSpace(_projectContext.projectId))
+        {
+            return false;
+        }
+
+        bool fileExists = SelectedDefinitionExists();
+
+        return _mode switch
+        {
+            DirectionsEditorMode.Create => !fileExists,
+            DirectionsEditorMode.Edit =>
+                fileExists &&
+                string.Equals(
+                    GetSelectedJsonAssetPath(),
+                    _loadedJsonAssetPath,
+                    StringComparison.Ordinal
+                ),
+            _ => false
+        };
+    }
+
+    private bool HasValidDefinitionSelection()
+    {
+        return
+            _projectContext != null &&
+            _projectContext.IsValid &&
+            _projectContext.availablePois != null &&
+            _selectedPoiIndex >= 0 &&
+            _selectedPoiIndex <
+                _projectContext.availablePois.Count &&
+            _projectContext.availableLanguages != null &&
+            _selectedLanguageIndex >= 0 &&
+            _selectedLanguageIndex <
+                _projectContext.availableLanguages.Count;
+    }
+
+    /// <summary>
+    /// Builds the deterministic AssetDatabase path for the currently selected
+    /// POI and language.
+    /// </summary>
+    private string GetSelectedJsonAssetPath()
+    {
+        if (!HasValidDefinitionSelection())
+            return null;
+
+        var selectedPoi =
+            _projectContext.availablePois[_selectedPoiIndex];
+        var selectedLanguage =
+            _projectContext.availableLanguages[_selectedLanguageIndex];
+
+        string folderPath =
+            _projectContext.directionsFolderPath
+                .Replace("\\", "/")
+                .TrimEnd('/');
+
+        string fileName =
+            TheodenFileNaming.GetDirectionsJsonFileName(
+                selectedPoi.PoiId,
+                selectedLanguage.language
+            );
+
+        return $"{folderPath}/{fileName}";
+    }
+
+    private bool SelectedDefinitionExists()
+    {
+        string jsonAssetPath = GetSelectedJsonAssetPath();
+
+        return
+            !string.IsNullOrWhiteSpace(jsonAssetPath) &&
+            AssetDatabase.LoadAssetAtPath<TextAsset>(
+                jsonAssetPath
+            ) != null;
+    }
+
+    private static bool IsAssetPath(string path)
+    {
+        if (string.IsNullOrWhiteSpace(path))
+            return false;
+
+        string normalizedPath = path.Replace("\\", "/");
+
+        return normalizedPath.Equals(
+                   "Assets",
+                   StringComparison.Ordinal) ||
+               normalizedPath.StartsWith(
+                   "Assets/",
+                   StringComparison.Ordinal
+               );
+    }
+
+    #endregion
 }

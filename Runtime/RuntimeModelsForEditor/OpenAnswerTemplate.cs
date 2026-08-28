@@ -9,6 +9,7 @@ using Newtonsoft.Json;
  * e.g.: question = "What year was Napoleon born?", answer = "1769"
  */
 [Serializable]
+[PoiChallengeType("openAnswerType")]
 public class OpenAnswerTemplate : POITemplate
 {
     public ChallengeOpenAnswer challenge = new ChallengeOpenAnswer();

@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using UnityEditor;
 using UnityEditor.Build;
@@ -25,6 +26,9 @@ namespace Theoden.Editor.Build
         private SerializedProperty applicationIdentifierProperty;
         private SerializedProperty applicationVersionProperty;
         private SerializedProperty androidVersionCodeProperty;
+        //LEADERBOARD URL
+        private SerializedProperty useLeaderboardProperty;
+        private SerializedProperty leaderboardBaseUrlProperty;
 
         private string projectLoadError;
 
@@ -55,12 +59,7 @@ namespace Theoden.Editor.Build
 
         [SerializeField]
         private string remoteContentBaseUrl;
-
-        [SerializeField]
-        private bool useLeaderboard;
-
-        [SerializeField]
-        private string leaderboardBaseUrl = "http://localhost:8000";
+        
 
         private Vector2 scrollPosition;
 
@@ -131,6 +130,10 @@ namespace Theoden.Editor.Build
 
                 DrawApplicationSettings();
 
+                GUILayout.Space(15);
+                
+                DrawRemoteServicesSettings();
+                
                 GUILayout.Space(15);
 
                 DrawAndroidPlatformStatus();
@@ -302,6 +305,15 @@ namespace Theoden.Editor.Build
             androidVersionCodeProperty =
                 serializedProjectConfig.FindProperty(
                     "androidVersionCode"
+                );
+
+            useLeaderboardProperty = 
+                serializedProjectConfig.FindProperty(
+                    "useLeaderboard");
+            
+            leaderboardBaseUrlProperty =
+                serializedProjectConfig.FindProperty(
+                    "leaderboardBaseUrl"
                 );
         }
 
@@ -577,9 +589,10 @@ namespace Theoden.Editor.Build
 
                 return;
             }
-
+            
             SetStatus(
-                "Runtime configuration updated successfully.\n" +
+                "Runtime configuration and Play Mode scenes " +
+                "updated successfully.\n" +
                 TheodenRuntimeConfigGenerator
                     .RuntimeConfigAssetPath,
                 MessageType.Info
@@ -604,6 +617,13 @@ namespace Theoden.Editor.Build
                 serializedProjectConfig.ApplyModifiedProperties();
 
             AssetDatabase.SaveAssets();
+            
+            if (!TheodenPlayModeSceneConfigurator
+                    .EnsureScenesAreAvailable(
+                        out error))
+            {
+                return false;
+            }
 
             return TheodenRuntimeConfigGenerator.CreateOrUpdate(
                 projectContext,
@@ -622,7 +642,21 @@ namespace Theoden.Editor.Build
                 EditorStyles.boldLabel
             );
 
-            useRemoteAddressables =
+            using (new EditorGUI.DisabledScope(true))
+            {
+                useRemoteAddressables = 
+                    EditorGUILayout.Toggle(new GUIContent("Remote Addressables, Hot Update feature",
+                        "Remote Addressables Configuration"), useRemoteAddressables);
+
+                if (useRemoteAddressables)
+                {
+                    remoteContentBaseUrl = EditorGUILayout.TextField(
+                        "Remote Content Base Url", 
+                        remoteContentBaseUrl);
+                }
+            }
+            /*
+             * useRemoteAddressables =
                 EditorGUILayout.Toggle(
                     new GUIContent(
                         "Remote Addressables",
@@ -642,28 +676,100 @@ namespace Theoden.Editor.Build
                         remoteContentBaseUrl
                     );
             }
+             */
 
-            useLeaderboard =
-                EditorGUILayout.Toggle(
+            GUILayout.Space(10);
+            if (useLeaderboardProperty == null || leaderboardBaseUrlProperty == null)
+            {
+                EditorGUILayout.HelpBox("The Leaderboard configuration fields " +
+                                        "are missing from TheodenProjectConfig", 
+                    MessageType.Warning);
+                return;
+            }
+            
+            EditorGUILayout.PropertyField(
+                useLeaderboardProperty,
+                new GUIContent(
+                    "Use Leaderboard",
+                    "Enable communication with the leaderboard service."
+                )
+            );
+
+            if (useLeaderboardProperty.boolValue)
+            {
+                EditorGUILayout.PropertyField(
+                    leaderboardBaseUrlProperty,
                     new GUIContent(
-                        "Leaderboard",
-                        "Enable communication with the leaderboard service."
-                    ),
-                    useLeaderboard
+                        "Leaderboard API URL",
+                        "Base URL of the leaderboard API, without an " +
+                        "endpoint such as /leaderboard."
+                    )
                 );
 
-            if (useLeaderboard)
+                DrawLeaderboardUrlValidation();
+            }
+            
+            int totalPoiCount =
+                projectContext?.poiRegistry?.Pois?.Count ?? 0;
+
+            using (new EditorGUI.DisabledScope(true))
             {
-                leaderboardBaseUrl =
-                    EditorGUILayout.TextField(
-                        new GUIContent(
-                            "Leaderboard API URL",
-                            "Base URL of the leaderboard API."
-                        ),
-                        leaderboardBaseUrl
-                    );
+                EditorGUILayout.IntField(
+                    new GUIContent(
+                        "Total POIs",
+                        "Automatically obtained from the POIRegistry."
+                    ),
+                    totalPoiCount
+                );
             }
         }
+        
+        private void DrawLeaderboardUrlValidation()
+        {
+            string url =
+                leaderboardBaseUrlProperty.stringValue?.Trim();
+
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                EditorGUILayout.HelpBox(
+                    "The leaderboard API URL is required when the " +
+                    "leaderboard is enabled.",
+                    MessageType.Error
+                );
+
+                return;
+            }
+
+            bool isValidUrl =
+                Uri.TryCreate(
+                    url,
+                    UriKind.Absolute,
+                    out Uri parsedUri
+                ) &&
+                (parsedUri.Scheme == Uri.UriSchemeHttp ||
+                 parsedUri.Scheme == Uri.UriSchemeHttps);
+
+            if (!isValidUrl)
+            {
+                EditorGUILayout.HelpBox(
+                    "Enter a valid absolute HTTP or HTTPS URL.",
+                    MessageType.Error
+                );
+
+                return;
+            }
+
+            if (parsedUri.IsLoopback)
+            {
+                EditorGUILayout.HelpBox(
+                    "This localhost URL works in the Unity Editor. " +
+                    "For a physical Android device, use the computer's " +
+                    "local network address.",
+                    MessageType.Warning
+                );
+            }
+        }
+        
         // ============================================================
         // BUILD
         // ============================================================

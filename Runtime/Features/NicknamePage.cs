@@ -39,6 +39,7 @@ public class NicknamePage : MonoBehaviour
 
         root = uiDocument.rootVisualElement;
         BindUIElements();
+        EnsureLocalizationManager();
         SetupUI();
         LoadSavedNickname();
     }
@@ -46,6 +47,19 @@ public class NicknamePage : MonoBehaviour
     private void OnDisable()
     {
         if (btnContinue != null) btnContinue.clicked -= OnContinue;
+    }
+
+    private void EnsureLocalizationManager()
+    {
+        if (LocalizationManager.Instance == null)
+        {
+            GameObject go = new GameObject("LocalizationManager");
+            LocalizationManager lm = go.AddComponent<LocalizationManager>();
+            DontDestroyOnLoad(go);
+            Debug.Log("[InstructionsPageManager] LocalizationManager created.");
+        }
+
+        LocalizationManager.Instance?.LoadLocalization();
     }
 
     // ============================================================
@@ -77,6 +91,10 @@ public class NicknamePage : MonoBehaviour
         {
             btnContinue.clicked -= OnContinue;
             btnContinue.clicked += OnContinue;
+            if (LocalizationManager.Instance != null)
+            {
+                btnContinue.text = LocalizationManager.Instance.GetText("play_button");
+            }
         }
 
         if (nicknameInput != null)
@@ -90,6 +108,11 @@ public class NicknamePage : MonoBehaviour
                     OnContinue();
                 }
             });
+        }
+
+        if (titleLabel != null)
+        {
+            titleLabel.text = LocalizationManager.Instance.GetText("nickname_placeholder");
         }
 
         if (errorText != null)

@@ -1,0 +1,101 @@
+<ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns:ui="UnityEngine.UIElements"
+         xmlns:uie="UnityEditor.UIElements"
+         noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd"
+         editor-extension-mode="False">
+    <Style src="MapScene.uss" />
+
+    <ui:VisualElement name="map_scene_root" class="map-screen">
+        <ui:VisualElement name="safe_area" class="safe-area">
+            <ui:VisualElement name="top_bar" class="top-bar">
+                <ui:Button name="back_button" class="top-bar-button">
+                    <ui:VisualElement class="ui-icon icon--back" picking-mode="Ignore" />
+                </ui:Button>
+
+                <ui:VisualElement name="institution_logo" class="institution-logo">
+                    <ui:Label name="institution_logo_fallback" text="HG" class="institution-logo-fallback" picking-mode="Ignore" />
+                </ui:VisualElement>
+
+                <ui:Button name="menu_button" class="top-bar-button">
+                    <ui:VisualElement class="ui-icon icon--menu" picking-mode="Ignore" />
+                </ui:Button>
+            </ui:VisualElement>
+
+            <ui:VisualElement name="map_heading" class="map-heading">
+                <ui:Label name="map_title_label" text="Explore the site" class="map-title" />
+                <ui:Label name="map_progress_label" text="0 of 0 locations discovered" class="map-progress" />
+            </ui:VisualElement>
+
+            <ui:VisualElement name="map_region" class="map-region">
+                <ui:VisualElement name="map_viewport" class="map-viewport">
+                    <ui:VisualElement name="map_content" class="map-content">
+                        <ui:VisualElement name="map_image" class="map-image">
+                            <ui:VisualElement name="map_placeholder" class="map-placeholder">
+                                <ui:Label text="Project map" class="map-placeholder-label" />
+                            </ui:VisualElement>
+                        </ui:VisualElement>
+                        <ui:VisualElement name="pins_layer" class="pins-layer" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement name="map_status_overlay" class="map-status-overlay">
+                        <ui:Label name="map_status_label" text="Loading map…" class="map-status-label" />
+                    </ui:VisualElement>
+                </ui:VisualElement>
+
+                <ui:VisualElement name="zoom_controls" class="zoom-controls">
+                    <ui:Button name="zoom_in_button" class="zoom-button zoom-button--top">
+                        <ui:VisualElement class="ui-icon zoom-icon icon--zoom-in" picking-mode="Ignore" />
+                    </ui:Button>
+                    <ui:VisualElement class="zoom-divider" />
+                    <ui:Button name="zoom_out_button" class="zoom-button zoom-button--bottom">
+                        <ui:VisualElement class="ui-icon zoom-icon icon--zoom-out" picking-mode="Ignore" />
+                    </ui:Button>
+                </ui:VisualElement>
+
+                <ui:Button name="recenter_button" class="recenter-button">
+                    <ui:VisualElement class="ui-icon recenter-icon icon--recenter" picking-mode="Ignore" />
+                </ui:Button>
+
+                <ui:VisualElement name="selected_poi_card_shadow" class="poi-card-shadow" />
+                <ui:VisualElement name="selected_poi_card" class="poi-card">
+                    <ui:VisualElement name="selected_poi_thumbnail" class="poi-thumbnail">
+                        <ui:VisualElement class="ui-icon poi-thumbnail-icon icon--landmark" picking-mode="Ignore" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="poi-card-content">
+                        <ui:Label name="selected_poi_title" text="Point of interest" class="poi-title" />
+                        <ui:Label name="selected_poi_distance" text="" class="poi-distance" />
+
+                        <ui:VisualElement class="poi-card-actions">
+                            <ui:Label name="selected_poi_status" text="Locked" class="poi-status" />
+                            <ui:Button name="view_directions_button" text="Locked" class="directions-button" />
+                        </ui:VisualElement>
+                    </ui:VisualElement>
+                </ui:VisualElement>
+            </ui:VisualElement>
+
+            <ui:VisualElement name="bottom_navigation" class="bottom-navigation">
+                <ui:Button name="discover_nav_button" class="nav-button">
+                    <ui:VisualElement class="ui-icon nav-icon icon--discover" picking-mode="Ignore" />
+                    <ui:Label text="Discover" class="nav-label" picking-mode="Ignore" />
+                </ui:Button>
+
+                <ui:Button name="map_nav_button" class="nav-button nav-button--active">
+                    <ui:VisualElement class="ui-icon nav-icon icon--map" picking-mode="Ignore" />
+                    <ui:Label text="Map" class="nav-label" picking-mode="Ignore" />
+                    <ui:VisualElement class="nav-active-indicator" picking-mode="Ignore" />
+                </ui:Button>
+
+                <ui:Button name="codex_nav_button" class="nav-button">
+                    <ui:VisualElement class="ui-icon nav-icon icon--codex" picking-mode="Ignore" />
+                    <ui:Label text="Codex" class="nav-label" picking-mode="Ignore" />
+                </ui:Button>
+
+                <ui:Button name="score_nav_button" class="nav-button">
+                    <ui:VisualElement class="ui-icon nav-icon icon--score" picking-mode="Ignore" />
+                    <ui:Label text="Score" class="nav-label" picking-mode="Ignore" />
+                </ui:Button>
+            </ui:VisualElement>
+        </ui:VisualElement>
+    </ui:VisualElement>
+</ui:UXML>

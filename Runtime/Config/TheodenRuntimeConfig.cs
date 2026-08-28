@@ -3,8 +3,8 @@ using UnityEngine;
 namespace Config
 {
     /// <summary>
-    /// Contains the minimal project information required by the
-    /// THEODEN runtime.
+    /// Contains the project information required by the
+    /// THEODEN application at runtime.
     /// </summary>
     public sealed class TheodenRuntimeConfig : ScriptableObject
     {
@@ -12,32 +12,43 @@ namespace Config
         private string projectId;
 
         [SerializeField]
-        [Min(0)]
-        private int totalPoiCount;
+        private bool useLeaderboard;
 
         [SerializeField]
         private string leaderboardBaseUrl;
 
+        [SerializeField, Min(0)]
+        private int totalPoiCount;
+
         /// <summary>
-        /// Stable identifier used to namespace this application.
+        /// Stable identifier of the current THEODEN project.
         /// </summary>
         public string ProjectId => projectId;
 
         /// <summary>
-        /// Total number of POIs included in the application.
+        /// Whether the leaderboard service is enabled.
+        /// </summary>
+        public bool UseLeaderboard => useLeaderboard;
+
+        /// <summary>
+        /// Base URL of the leaderboard API.
+        /// </summary>
+        public string LeaderboardBaseUrl =>
+            string.IsNullOrWhiteSpace(leaderboardBaseUrl)
+                ? string.Empty
+                : leaderboardBaseUrl.Trim().TrimEnd('/');
+
+        /// <summary>
+        /// Total number of POIs available in the project.
         /// </summary>
         public int TotalPoiCount => totalPoiCount;
 
         /// <summary>
-        /// Base URL of the leaderboard service.
-        /// </summary>
-        public string LeaderboardBaseUrl =>
-            leaderboardBaseUrl?.TrimEnd('/');
-
-        /// <summary>
-        /// Returns whether a leaderboard service was configured.
+        /// Whether the runtime has all the information required
+        /// to contact the leaderboard service.
         /// </summary>
         public bool HasLeaderboardConfiguration =>
-            !string.IsNullOrWhiteSpace(leaderboardBaseUrl);
+            useLeaderboard &&
+            !string.IsNullOrWhiteSpace(LeaderboardBaseUrl);
     }
 }

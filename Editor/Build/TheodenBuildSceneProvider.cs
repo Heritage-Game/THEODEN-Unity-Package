@@ -19,6 +19,7 @@ namespace Theoden.Editor.Build
         private static readonly string[] ScenePaths =
         {
             $"{ScenesRoot}/SplashUIToolkit.unity",
+            $"{ScenesRoot}/InstructionsUIToolkit.unity",
             $"{ScenesRoot}/LanguageUIToolkit.unity",
             $"{ScenesRoot}/NicknameUIToolkit.unity",
             $"{ScenesRoot}/MenuUIToolkit.unity",

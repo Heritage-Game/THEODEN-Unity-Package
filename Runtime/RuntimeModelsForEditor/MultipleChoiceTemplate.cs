@@ -9,6 +9,7 @@ using Newtonsoft.Json;
 /// to by choosing an option from the choices available. 
 /// </summary>
 [Serializable]
+[PoiChallengeType("multipleChoiceType")]
 public class MultipleChoiceTemplate : POITemplate
 {
     public ChallengeMC challenge = new ChallengeMC();

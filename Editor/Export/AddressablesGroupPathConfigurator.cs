@@ -68,29 +68,52 @@ namespace Theoden.Editor.Export
             {
                 contentUpdateSchema = group.AddSchema<ContentUpdateGroupSchema>();
             }
-
-            bool useRemotePaths = HasRemoteLoadPath(settings);
-
-            if (useRemotePaths)
-            {
-                bundledSchema.BuildPath.SetVariableByName(settings, "RemoteBuildPath");
-                bundledSchema.LoadPath.SetVariableByName(settings, "RemoteLoadPath");
-
-                Debug.Log(
-                    "[AddressablesGroupPathConfigurator] Group configured as REMOTE: " +
-                    group.Name
+            bool useRemotePaths =
+                HasProfilePath(
+                    settings,
+                    AddressableAssetSettings.kRemoteBuildPath
+                ) &&
+                HasProfilePath(
+                    settings,
+                    AddressableAssetSettings.kRemoteLoadPath
                 );
-            }
-            else
-            {
-                bundledSchema.BuildPath.SetVariableByName(settings, "LocalBuildPath");
-                bundledSchema.LoadPath.SetVariableByName(settings, "LocalLoadPath");
 
-                Debug.Log(
-                    "[AddressablesGroupPathConfigurator] Group configured as LOCAL: " +
-                    group.Name
+            string buildPathVariable = useRemotePaths
+                ? AddressableAssetSettings.kRemoteBuildPath
+                : AddressableAssetSettings.kLocalBuildPath;
+
+            string loadPathVariable = useRemotePaths
+                ? AddressableAssetSettings.kRemoteLoadPath
+                : AddressableAssetSettings.kLocalLoadPath;
+
+            bool buildPathConfigured =
+                bundledSchema.BuildPath.SetVariableByName(
+                    settings,
+                    buildPathVariable
                 );
+
+            bool loadPathConfigured =
+                bundledSchema.LoadPath.SetVariableByName(
+                    settings,
+                    loadPathVariable
+                );
+
+            if (!buildPathConfigured || !loadPathConfigured)
+            {
+                Debug.LogError(
+                    "[AddressablesGroupPathConfigurator] Could not configure " +
+                    $"the paths for group '{group.Name}'. " +
+                    $"Build variable: '{buildPathVariable}', " +
+                    $"Load variable: '{loadPathVariable}'."
+                );
+
+                return false;
             }
+
+            Debug.Log(
+                "[AddressablesGroupPathConfigurator] Group configured as " +
+                $"{(useRemotePaths ? "REMOTE" : "LOCAL")}: {group.Name}"
+            );
 
             settings.SetDirty(
                 AddressableAssetSettings.ModificationEvent.GroupSchemaModified,
@@ -99,6 +122,28 @@ namespace Theoden.Editor.Export
             );
 
             return true;
+        }
+        
+        /// <summary>
+        /// Checks whether the active Addressables profile has a valid path for the variable.
+        /// </summary>
+        /// <param name="settings">
+        /// Active Addressables settings.
+        /// </param>
+        /// <returns>
+        /// True if the path is configured; otherwise false.
+        /// </returns>
+        private static bool HasProfilePath(
+            AddressableAssetSettings settings,
+            string variableName)
+        {
+            string value = ResolveProfilePath(
+                settings,
+                variableName
+            );
+
+            return !string.IsNullOrWhiteSpace(value) &&
+                   !value.Contains($"[{variableName}]");
         }
 
         /// <summary>
@@ -110,17 +155,13 @@ namespace Theoden.Editor.Export
         /// <returns>
         /// True if RemoteLoadPath is configured; otherwise false.
         /// </returns>
-        public static bool HasRemoteLoadPath(AddressableAssetSettings settings)
+        public static bool HasRemoteLoadPath(
+            AddressableAssetSettings settings)
         {
-            string remoteLoadPath = ResolveProfilePath(settings, "RemoteLoadPath");
-
-            if (string.IsNullOrWhiteSpace(remoteLoadPath))
-                return false;
-
-            if (remoteLoadPath.Contains("[RemoteLoadPath]"))
-                return false;
-
-            return true;
+            return HasProfilePath(
+                settings,
+                AddressableAssetSettings.kRemoteLoadPath
+            );
         }
 
         /// <summary>
