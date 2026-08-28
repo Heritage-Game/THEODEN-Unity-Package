@@ -8,7 +8,7 @@ using Debug = UnityEngine.Debug;
 
 public static class AddressablesPoiLoadTest
 {
-    [MenuItem("THEODEN/Test/Load Test POI Media With Init")]
+    //[MenuItem("THEODEN/Test/Load Test POI Media With Init")]
     private static async void LoadTestPoiMediaWithInit()
     {
         var initWatch = Stopwatch.StartNew();

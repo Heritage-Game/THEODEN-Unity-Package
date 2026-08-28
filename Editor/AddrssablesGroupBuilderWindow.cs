@@ -33,7 +33,7 @@ namespace Theoden.Editor
 
         private List<string> _assetPreview = new();
 
-        [MenuItem("THEODEN/5.Create Addressables Group/Create Group from a folder")]
+       // [MenuItem("THEODEN/5.Create Addressables Group/Create Group from a folder")]
         public static void ShowWindow()
         {
             var window = GetWindow<AddrssablesGroupBuilderWindow>("Create Addressable Group from a folder");

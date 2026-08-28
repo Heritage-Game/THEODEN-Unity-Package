@@ -49,7 +49,7 @@ public static class UpdateServerAddressables
     /// If RemoteLoadPath is configured, this method builds remote Addressables content and uploads
     /// changed files to the server.
     /// </remarks>
-    [MenuItem("THEODEN/6.Build & Upload Changed Content to server %#u")]
+    //[MenuItem("THEODEN/6.Build & Upload Changed Content to server %#u")]
     public static void BuildAndUploadChangedContent()
     {
         try
